@@ -1,0 +1,22 @@
+[dotenv@17.3.1] injecting env (5) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+Available Groq Models:
+- llama-3.1-8b-instant
+- meta-llama/llama-prompt-guard-2-22m
+- allam-2-7b
+- moonshotai/kimi-k2-instruct
+- openai/gpt-oss-safeguard-20b
+- whisper-large-v3
+- openai/gpt-oss-20b
+- meta-llama/llama-4-scout-17b-16e-instruct
+- groq/compound-mini
+- meta-llama/llama-4-maverick-17b-128e-instruct
+- canopylabs/orpheus-arabic-saudi
+- moonshotai/kimi-k2-instruct-0905
+- qwen/qwen3-32b
+- canopylabs/orpheus-v1-english
+- openai/gpt-oss-120b
+- whisper-large-v3-turbo
+- meta-llama/llama-prompt-guard-2-86m
+- meta-llama/llama-guard-4-12b
+- llama-3.3-70b-versatile
+- groq/compound

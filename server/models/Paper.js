@@ -1,0 +1,28 @@
+const mongoose = require('mongoose');
+
+const PaperSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    title: { type: String, required: true },
+    domain: {
+        type: String,
+        required: true,
+        enum: [
+            'Agriculture', 'Climate', 'Medtech',
+            'Artificial Intelligence', 'Machine Learning', 'Computer Vision', 'Natural Language Processing',
+            'Cybersecurity', 'Quantum Physics', 'Astrophysics', 'Nanotechnology', 'Biotechnology',
+            'Medical Sciences', 'Neuroscience', 'Mathematics', 'Statistics', 'Economics',
+            'Environmental Science', 'Other'
+        ]
+    },
+    filePath: { type: String, required: false }, // Optional for external papers
+    pdfUrl: { type: String, required: false },   // For arXiv links
+    abstract: { type: String, required: false },
+    authors: { type: [String], required: false },
+    source: { type: String, default: 'upload' }, // 'upload' or 'arXiv'
+    originalName: { type: String, required: false }, // Optional for written/external
+    content: { type: String, required: false }, // For Doc Space papers
+    llamaMetadata: { type: Object, required: false }, // Extracted metadata from LlamaIndex
+    uploadDate: { type: Date, default: Date.now }
+}, { timestamps: true });
+
+module.exports = mongoose.model('Paper', PaperSchema);

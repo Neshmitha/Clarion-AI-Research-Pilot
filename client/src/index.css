@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-white antialiased;
+  }
+}
+
+/* Custom Utilities for Glassmorphism if needed */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Quill Editor Customization */
+.quill {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.ql-container {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  font-size: 1.1rem;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden !important;
+  border-bottom-left-radius: 0.75rem;
+  border-bottom-right-radius: 0.75rem;
+  height: auto !important;
+  /* Prevent static height issues */
+}
+
+.ql-editor {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  height: auto !important;
+  padding: 1.5rem !important;
+}
+
+/* Dark Mode Overrides */
+.quill-dark .ql-toolbar {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+}
+
+.quill-dark .ql-container {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: #1a1a1a;
+  color: #e5e7eb;
+}
+
+/* Light Mode Overrides */
+.quill-light .ql-toolbar {
+  border-color: #e5e7eb !important;
+  background-color: #f9fafb;
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+}
+
+.quill-light .ql-container {
+  border-color: #e5e7eb !important;
+  background-color: #ffffff;
+  color: #1f2937;
+}
+
+.quill-light .ql-stroke {
+  stroke: #374151 !important;
+}
+
+.quill-light .ql-fill {
+  fill: #374151 !important;
+}
+
+.quill-light .ql-picker {
+  color: #374151 !important;
+}

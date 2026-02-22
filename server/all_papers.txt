@@ -1,0 +1,99 @@
+[dotenv@17.3.1] injecting env (5) from .env -- tip: ≡ƒöÉ encrypt with Dotenvx: https://dotenvx.com
+Connected to MongoDB.
+Total papers: 19
+
+1. Title: Cancer Research Paper
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Medtech
+   Path: uploads\1771250261973-Research hub - Agentic Ai powered research tool.docx.pdf | Exists: true
+---
+2. Title: Agri
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Agriculture
+   Path: uploads\1771315772593-Joy of Computing using Python (1).pdf | Exists: true
+---
+3. Title: Multistep Parametric Processes in Nonlinear Optics
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Other
+   Path: MISSING
+---
+4. Title: Stripe-like quasi-nondiffracting optical lattices
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Other
+   Path: MISSING
+---
+5. Title: Test Paper
+   User: 67b4588e3650222f7c00684f
+   Domain: Other
+   Path: MISSING
+---
+6. Title: Test Paper
+   User: 67b4588e3650222f7c00684f
+   Domain: Medtech
+   Path: MISSING
+---
+7. Title: Test Paper
+   User: 67b4588e3650222f7c00684f
+   Domain: Medtech
+   Path: MISSING
+---
+8. Title: Soliton control in fading optical lattices
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: AIML
+   Path: MISSING
+---
+9. Title: PT-symmetry in optics beyond the paraxial approximation
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: AIML
+   Path: MISSING
+---
+10. Title: Soliton percolation in random optical lattices
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: AIML
+   Path: MISSING
+---
+11. Title: Stripe-like quasi-nondiffracting optical lattices
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Agriculture
+   Path: MISSING
+---
+12. Title: Spatial solitons rays in periodic optical lattices
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Agriculture
+   Path: MISSING
+---
+13. Title: Robustness of optic-fiber-based weak value amplification against amplitude-type noise
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Agriculture
+   Path: MISSING
+---
+14. Title: Agriculture-Vision Challenge 2022 -- The Runner-Up Solution for Agricultural Pattern Recognition via Transformer-based Models
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Agriculture
+   Path: MISSING
+---
+15. Title: FieldSAFE: Dataset for Obstacle Detection in Agriculture
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Agriculture
+   Path: MISSING
+---
+16. Title: Crop Spirals: Re-thinking the field layout for future robotic agriculture
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Agriculture
+   Path: MISSING
+---
+17. Title: Toward AIML Enabled WiFi Beamforming CSI Feedback Compression: An Overview of IEEE 802.11 Standardization
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Machine Learning
+   Path: MISSING
+---
+18. Title: Three-body recombination in physical chemistry
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Medical Sciences
+   Path: MISSING
+---
+19. Title: Aromatics and Cyclic Molecules in Molecular Clouds: A New Dimension of Interstellar Organic Chemistry
+   User: 6992bc6ecfa834be5e91ac33
+   Domain: Medical Sciences
+   Path: MISSING
+---
