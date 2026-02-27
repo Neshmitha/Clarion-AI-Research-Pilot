@@ -91,7 +91,7 @@ const Contributions = () => {
     return (
         <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-[#000000] text-white' : 'bg-[#f8fafc] text-black'}`}>
             {/* Sidebar */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 ${isDark ? 'bg-black/80 border-white/5' : 'bg-white/80 border-[#38bdf8]/20'} backdrop-blur-xl border-r flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 ${isSidebarOpen ? 'lg:flex' : 'lg:hidden'}`}>
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 ${isDark ? 'bg-black/80 border-white/5' : 'bg-white/80 border-[#38bdf8]/20'} backdrop-blur-xl border-r flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 ${isSidebarOpen ? 'lg:flex' : 'lg:hidden'} flex-shrink-0`}>
                 <div className={`p-8 border-b ${isDark ? 'border-white/5' : 'border-[#38bdf8]/20'}`}>
                     <div className="flex items-center gap-3 text-[#38bdf8] font-bold text-2xl tracking-tight">
                         <div className={`p-2 rounded-xl transition-all ${isDark ? 'bg-[#38bdf8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-white shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}>
@@ -128,7 +128,10 @@ const Contributions = () => {
 
                 <header className={`h-20 flex items-center justify-between px-8 border-b ${isDark ? 'border-white/5 bg-black/40 text-white' : 'border-[#38bdf8]/30 bg-white/60 text-black'} backdrop-blur-md z-10 shadow-[0_4px_30px_rgba(56,189,248,0.05)]`}>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-lg transition ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-black/5 hover:bg-black/10 text-gray-700'} lg:hidden`}>
+                        <button
+                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            className={`p-2 rounded-lg transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-white border-2 border-transparent text-black shadow-sm hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(56,189,248,0.8),_0_0_5px_rgba(56,189,248,1)]'}`}
+                        >
                             <Menu size={20} />
                         </button>
                         <h2 className="text-xl font-bold flex items-center gap-2">

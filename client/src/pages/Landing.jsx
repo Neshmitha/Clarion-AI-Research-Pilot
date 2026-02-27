@@ -49,7 +49,7 @@ const Landing = () => {
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                             <Sparkles size={16} className="text-blue-300 animate-pulse" />
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100 uppercase font-black">Get Started</span>
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100 uppercase font-black">Start Research</span>
                             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </button>
                     </div>

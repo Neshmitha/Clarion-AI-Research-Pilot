@@ -191,6 +191,7 @@ const Workspace = () => {
                 isOpen={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}
                 onUploadSuccess={fetchPapers}
+                isDark={isDark}
             />
 
             <EditPaperModal
