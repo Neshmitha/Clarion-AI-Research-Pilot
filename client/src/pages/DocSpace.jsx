@@ -6,7 +6,8 @@ import {
     LayoutDashboard, Search, FileText, Upload, Settings, LogOut, Menu,
     BookOpen, Bot, Edit3, Plus, Trash2, Save, Printer, Download
     , Compass, Star
-, GitPullRequest } from 'lucide-react';
+    , GitPullRequest
+} from 'lucide-react';
 import UploadModal from '../components/UploadModal';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
@@ -164,8 +165,8 @@ const DocSpace = () => {
             {/* Editor Styles */}
             <style>{`
                 .docspace-editor .ql-toolbar.ql-snow {
-                    border: ${isDark ? '1px solid rgba(255,255,255,0.05)' : '2px solid black'} !important;
-                    background: #1a1a1a !important;
+                    border: ${isDark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #e2e8f0'} !important;
+                    background: ${isDark ? '#1a1a1a' : '#ffffff'} !important;
                     padding: 8px 16px;
                     border-radius: 12px 12px 0 0;
                     margin: 0 auto;
@@ -179,18 +180,41 @@ const DocSpace = () => {
                 }
                 .docspace-editor .ql-toolbar.ql-snow button,
                 .docspace-editor .ql-toolbar.ql-snow .ql-picker {
-                    color: #ffffff !important;
+                    color: ${isDark ? '#ffffff' : '#1a1a1a'} !important;
                 }
                 .docspace-editor .ql-toolbar.ql-snow .ql-stroke {
-                    stroke: #ffffff !important;
+                    stroke: ${isDark ? '#ffffff' : '#1a1a1a'} !important;
+                }
+                .docspace-editor .ql-toolbar.ql-snow .ql-fill {
+                    fill: ${isDark ? '#ffffff' : '#1a1a1a'} !important;
                 }
                 .docspace-editor .ql-toolbar.ql-snow button:hover,
                 .docspace-editor .ql-toolbar.ql-snow .ql-picker-label:hover {
-                    color: ${isDark ? '#a78bfa' : '#38bdf8'} !important;
+                    color: ${isDark ? '#a78bfa' : '#0284c7'} !important;
                 }
                 .docspace-editor .ql-toolbar.ql-snow button:hover .ql-stroke,
                 .docspace-editor .ql-toolbar.ql-snow .ql-picker-label:hover .ql-stroke {
-                    stroke: ${isDark ? '#a78bfa' : '#38bdf8'} !important;
+                    stroke: ${isDark ? '#a78bfa' : '#0284c7'} !important;
+                }
+                .docspace-editor .ql-toolbar.ql-snow .ql-picker-options {
+                    background: #ffffff !important;
+                    border: 1px solid #e2e8f0 !important;
+                    border-radius: 8px !important;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.12) !important;
+                    color: #1a1a1a !important;
+                }
+                .docspace-editor .ql-toolbar.ql-snow .ql-picker-options .ql-picker-item {
+                    color: #1a1a1a !important;
+                }
+                .docspace-editor .ql-toolbar.ql-snow .ql-picker-options .ql-picker-item:hover {
+                    color: #0284c7 !important;
+                    background: #e0f2fe !important;
+                }
+                .docspace-editor .ql-toolbar.ql-snow .ql-picker-label {
+                    color: ${isDark ? '#ffffff' : '#1a1a1a'} !important;
+                }
+                .docspace-editor .ql-toolbar.ql-snow .ql-picker-label .ql-stroke {
+                    stroke: ${isDark ? '#ffffff' : '#1a1a1a'} !important;
                 }
                 .docspace-editor .ql-container.ql-snow {
                     border: ${isDark ? 'none' : '2px solid black'} !important;
