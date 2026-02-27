@@ -1,18 +1,31 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { runAIWithPool } = require('./aiManager');
 const fs = require('fs');
 const path = require('path');
 const pdf = require('pdf-parse');
 const Paper = require('../models/Paper');
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+/**
+ * Classifies a user query into a research domain.
+ */
+async function classifyQuery(query) {
+    const prompt = `Classify the following research query into one of these domains: 
+    Agriculture, Climate, Medtech, Artificial Intelligence, Machine Learning, Computer Vision, 
+    Natural Language Processing, Cybersecurity, Quantum Physics, Astrophysics, Nanotechnology, 
+    Biotechnology, Medical Sciences, Neuroscience, Mathematics, Statistics, Economics, 
+    Environmental Science, Other.
+    
+    Query: "${query}"
+    
+    Return ONLY the domain name.`;
 
-const OpenAI = require("openai");
-const groq = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY,
-    baseURL: "https://api.groq.com/openai/v1",
-});
+    try {
+        const response = await runAIWithPool(prompt, { maxTokens: 50 });
+        return response.trim();
+    } catch (error) {
+        console.error("Chatbot Classification Error:", error.message);
+        return "Other";
+    }
+}
 
 
 /**
@@ -36,7 +49,11 @@ async function getRelevantContext(userId, domain, query, paperId) {
             if (paper) papers = [paper];
         } else {
             // Find papers in database for this domain
-            papers = await Paper.find({ userId, domain });
+            const queryObj = { userId };
+            if (domain !== 'ALL DOMAINS') {
+                queryObj.domain = domain;
+            }
+            papers = await Paper.find(queryObj);
         }
 
         if (papers.length === 0) return { context: null, sources: [] };
@@ -71,7 +88,10 @@ async function getRelevantContext(userId, domain, query, paperId) {
 
             // 1. Fallback/Supplement: Try local PDF file (only if meta is small or not enough)
             if (paper.filePath && (!paper.llamaMetadata || paperContent.length < 2000)) {
-                const absolutePath = path.join(__dirname, '..', paper.filePath);
+                // NORMALIZE PATH: Replace Windows backslashes with forward slashes for Mac/Linux
+                const normalizedPath = paper.filePath.replace(/\\/g, '/');
+                const absolutePath = path.join(__dirname, '..', normalizedPath);
+
                 if (fs.existsSync(absolutePath)) {
                     try {
                         const text = await extractTextFromPDF(absolutePath);
@@ -80,12 +100,15 @@ async function getRelevantContext(userId, domain, query, paperId) {
                     } catch (e) {
                         console.error(`Error reading PDF ${absolutePath}:`, e);
                     }
+                } else {
+                    console.error(`File not found at: ${absolutePath}`);
                 }
             }
 
             // 2. Add written content if available
             if (paper.content) {
-                paperContent += `\n[USER WRITTEN CONTENT]:\n${paper.content}\n`;
+                const strippedContent = paper.content.replace(/<[^>]*>?/gm, ' ');
+                paperContent += `\n[USER WRITTEN CONTENT]:\n${strippedContent.substring(0, 8000)}\n`;
                 sourceFound = true;
             }
 
@@ -96,11 +119,15 @@ async function getRelevantContext(userId, domain, query, paperId) {
             }
 
             if (sourceFound) {
-                // Check for relevance
-                const keywords = query.toLowerCase().split(' ').filter(k => k.length > 3);
-                const containsKeyword = keywords.length === 0 || keywords.some(k => paperContent.toLowerCase().includes(k));
+                // If a specific paper is selected, bypass keyword check
+                let isRelevant = !!paperId;
 
-                if (containsKeyword) {
+                if (!isRelevant) {
+                    const keywords = query.toLowerCase().split(' ').filter(k => k.length > 3);
+                    isRelevant = keywords.length === 0 || keywords.some(k => paperContent.toLowerCase().includes(k));
+                }
+
+                if (isRelevant) {
                     combinedContext += `\n--- SOURCE: ${paper.title} ---\n${paperContent}\n`;
                     sources.push(paper.originalName || paper.title);
                 }
@@ -126,8 +153,9 @@ async function generateResponse(query, context, domain) {
         return `I couldn't find any relevant PDFs in the **${domain}** domain to answer your question.`;
     }
 
-    const prompt = `You are ResearchPilot AI, an expert research assistant. 
-Use the provided excerpts from research papers in the "${domain}" domain to answer the user's question.
+    const domainContext = domain === 'ALL DOMAINS' ? 'all research papers' : `the "${domain}" domain`;
+    const prompt = `You are Clarion AI, an expert research assistant. 
+Use the provided excerpts from research papers ${domainContext} to answer the user's question.
 
 Research Context:
 ${context}
@@ -141,30 +169,15 @@ Instructions:
 4. Format with markdown (headers, lists, bold text).`;
 
     try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text();
-    } catch (geminiError) {
-        console.error("Gemini Generation Error, falling back to Groq:", geminiError.message);
-
-        if (process.env.GROQ_API_KEY) {
-            try {
-                const completion = await groq.chat.completions.create({
-                    messages: [{ role: "user", content: prompt }],
-                    model: "llama-3.3-70b-versatile",
-                });
-                return completion.choices[0].message.content;
-            } catch (groqError) {
-                console.error("Groq Generation Error:", groqError.message);
-                return "I encountered errors with all available AI services. Please try again later.";
-            }
-        }
-
-        return "I encountered an error while generating the response (Gemini quota likely exceeded). Please check your configuration.";
+        return await runAIWithPool(prompt);
+    } catch (error) {
+        console.error("Chatbot Generation Error:", error.message);
+        return "I encountered errors with all available AI services. Please try again later.";
     }
 }
 
 module.exports = {
     getRelevantContext,
-    generateResponse
+    generateResponse,
+    classifyQuery
 };

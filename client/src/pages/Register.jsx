@@ -1,94 +1,159 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Moon, Sun, Sparkles, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import API_BASE_URL from '../config';
 
 const Register = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+
+    // Theme state
+    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+    useEffect(() => {
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const isDark = theme === 'dark';
+
+    const toggleTheme = () => {
+        setTheme(isDark ? 'light' : 'dark');
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
         try {
-            await axios.post('http://localhost:5001/api/auth/register', { username, email, password });
+            await axios.post(`${API_BASE_URL}/auth/register`, { username, email, password });
             alert('Registration successful! Please login.');
             navigate('/login');
         } catch (err) {
             console.error(err);
             alert('Registration failed');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="flex h-screen w-full bg-black text-white overflow-hidden">
-            {/* Left Side - Visual (Reused style for consistency) */}
-            <div className="hidden lg:flex w-1/2 items-center justify-center relative bg-black">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-black/50 z-10"></div>
-                <div className="w-[500px] h-[500px] rounded-full bg-gradient-to-t from-purple-700 to-blue-900 blur-3xl opacity-40 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
-                <div className="relative z-20 w-[80%] h-[80%] rounded-full border border-white/10 flex items-center justify-center overflow-hidden shadow-2xl shadow-indigo-900/50 block bg-[url('https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-80 mix-blend-overlay">
+        <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 overflow-hidden">
+            {/* Background Image */}
+            <div
+                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+                style={{
+                    backgroundImage: `url('/loginbg.png')`,
+                    filter: isDark ? 'brightness(0.3)' : 'none'
+                }}
+            />
+
+            {/* Theme Toggle Button */}
+            <button
+                onClick={toggleTheme}
+                className={`absolute top-6 right-6 z-50 p-3 rounded-full shadow-lg transition-transform hover:scale-110 ${isDark ? 'bg-white/10 text-yellow-400 hover:bg-white/20' : 'bg-white text-indigo-600 shadow-gray-200/50 hover:bg-gray-100'}`}
+            >
+                {isDark ? <Sun size={24} /> : <Moon size={24} />}
+            </button>
+
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative z-10 mb-8 text-center"
+            >
+                <h1
+                    className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-indigo-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.3)] pr-2"
+                    style={{ fontFamily: "'Outfit', sans-serif" }}
+                >
+                    CLARION
+                </h1>
+                <div className="h-0.5 w-32 bg-gradient-to-r from-transparent via-blue-500 to-transparent mx-auto mt-4 opacity-50"></div>
+            </motion.div>
+
+            {/* Form Container */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`relative z-10 w-full max-w-md p-8 sm:p-10 rounded-3xl shadow-2xl backdrop-blur-xl transition-colors duration-500 ${isDark ? 'bg-black/60 border border-white/10' : 'bg-white/80 border border-white/20 shadow-gray-200/20'}`}
+            >
+                <div className="text-center mb-8">
+                    <h2 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Account</h2>
+                    <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Start your AI-powered research journey today</p>
                 </div>
-            </div>
 
-            {/* Right Side - Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-black">
-                <div className="w-full max-w-md bg-surface p-8 rounded-2xl border border-white/10 shadow-xl backdrop-blur-sm">
-                    <h2 className="text-3xl font-bold mb-2 text-center text-white">Create Account</h2>
-                    <p className="text-gray-400 text-center mb-8">Join ResearchHub AI today</p>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                        <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 border ${isDark ? 'bg-black/40 border-white/10 text-white focus:border-blue-500 placeholder-gray-600' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-600 focus:bg-white placeholder-gray-400'}`}
+                            placeholder="johndoe"
+                            required
+                        />
+                    </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Username</label>
-                            <input
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/20 text-white focus:outline-none focus:border-purple-500 transition-colors placeholder-gray-600"
-                                placeholder="johndoe"
-                                required
-                            />
-                        </div>
+                    <div>
+                        <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 border ${isDark ? 'bg-black/40 border-white/10 text-white focus:border-blue-500 placeholder-gray-600' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-600 focus:bg-white placeholder-gray-400'}`}
+                            placeholder="you@example.com"
+                            required
+                        />
+                    </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/20 text-white focus:outline-none focus:border-purple-500 transition-colors placeholder-gray-600"
-                                placeholder="you@example.com"
-                                required
-                            />
-                        </div>
+                    <div>
+                        <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 border ${isDark ? 'bg-black/40 border-white/10 text-white focus:border-blue-500 placeholder-gray-600' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-600 focus:bg-white placeholder-gray-400'}`}
+                            placeholder="........"
+                            required
+                        />
+                    </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg bg-black/50 border border-white/20 text-white focus:outline-none focus:border-purple-500 transition-colors placeholder-gray-600"
-                                placeholder="........"
-                                required
-                            />
-                        </div>
-
+                    {/* Sparkling Light Blue Button */}
+                    <div className="relative group">
+                        <motion.div
+                            animate={{
+                                opacity: [0.3, 0.6, 0.3],
+                                scale: [1, 1.05, 1],
+                            }}
+                            transition={{ duration: 3, repeat: Infinity }}
+                            className="absolute -inset-2 bg-blue-500/20 rounded-xl blur-xl group-hover:bg-blue-400/40 transition-all z-0"
+                        />
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 via-cyan-300 to-indigo-500 rounded-xl blur-sm opacity-40 group-hover:opacity-100 transition duration-500 animate-pulse"></div>
                         <button
                             type="submit"
-                            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg shadow-purple-900/30"
+                            disabled={loading}
+                            className="relative w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-black border border-blue-400/30 text-white font-black text-sm rounded-xl shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)] hover:border-blue-300 transition-all group overflow-hidden"
                         >
-                            Sign Up
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                            <Sparkles size={16} className="text-blue-300 animate-pulse" />
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-100 uppercase tracking-widest">
+                                {loading ? 'Processing...' : 'Sign Up'}
+                            </span>
+                            {!loading && <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />}
                         </button>
-                    </form>
+                    </div>
+                </form>
 
-                    <p className="mt-6 text-center text-gray-400 text-sm">
-                        Already have an account?{' '}
-                        <Link to="/login" className="text-purple-400 hover:text-purple-300 font-medium">
-                            Sign in
-                        </Link>
-                    </p>
-                </div>
-            </div>
+                <p className={`mt-8 text-center text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Already have an account?{' '}
+                    <Link to="/login" className={`hover:underline font-bold ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}>
+                        Sign in
+                    </Link>
+                </p>
+            </motion.div>
         </div>
     );
 };

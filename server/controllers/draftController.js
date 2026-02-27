@@ -1,15 +1,4 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-const OpenAI = require("openai");
-const groq = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY,
-    baseURL: "https://api.groq.com/openai/v1",
-});
-
-
+const { runAIStreamWithPool } = require('../services/aiManager');
 
 exports.generateDraft = async (req, res) => {
     try {
@@ -19,7 +8,7 @@ exports.generateDraft = async (req, res) => {
             return res.status(400).json({ message: "Topic, template, and type are required." });
         }
 
-        console.log(`Generating Gemini draft for: ${topic} using template: ${template}`);
+        console.log(`[Draft Engine] Requesting pooled draft for: ${topic}`);
 
         let templateGuide = "";
         const templateKey = template || 'IEEE Journal';
@@ -101,42 +90,20 @@ exports.generateDraft = async (req, res) => {
         - Ensure NO empty blocks or purely placeholder sections. 
         - Provide high-quality technical content with realistic methodology and quantitative results.`;
 
-
-
         try {
-            const result = await model.generateContentStream(prompt);
-
-            // Set headers for streaming
             res.setHeader('Content-Type', 'text/plain; charset=utf-8');
             res.setHeader('Transfer-Encoding', 'chunked');
 
-            for await (const chunk of result.stream) {
-                const chunkText = chunk.text();
-                if (chunkText) {
-                    res.write(chunkText);
-                }
-            }
+            await runAIStreamWithPool(prompt, (chunk) => res.write(chunk));
+
             res.end();
-        } catch (geminiErr) {
-            console.error("Gemini Error, falling back to Groq:", geminiErr.message);
-
-            if (process.env.GROQ_API_KEY) {
-                const stream = await groq.chat.completions.create({
-                    messages: [{ role: "user", content: prompt }],
-                    model: "llama-3.3-70b-versatile",
-                    stream: true,
-                });
-
-                res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-                res.setHeader('Transfer-Encoding', 'chunked');
-
-                for await (const chunk of stream) {
-                    const content = chunk.choices[0]?.delta?.content || "";
-                    if (content) res.write(content);
-                }
-                res.end();
+        } catch (poolErr) {
+            console.error("[AI POOL] Drafting Stream Failed:", poolErr.message);
+            if (!res.headersSent) {
+                res.status(500).json({ error: "Draft generation failed on all AI providers." });
             } else {
-                throw geminiErr; // Re-throw if no Groq key
+                res.write("\n\n[ERROR]: Generation interrupted due to provider issues.");
+                res.end();
             }
         }
 

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, Search, FileText, Upload, Settings, LogOut, Menu, Filter, ArrowRight, Loader2, BookOpen } from 'lucide-react';
+import API_BASE_URL from '../config';
+import { LayoutDashboard, Search, FileText, Upload, Settings, LogOut, Menu, Filter, ArrowRight, Loader2, BookOpen, Bot, Edit3, Compass, Star, GitPullRequest } from 'lucide-react';
 import UploadModal from '../components/UploadModal';
 import ImportReviewModal from '../components/ImportReviewModal';
 
@@ -10,7 +11,7 @@ const SearchPapers = () => {
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('agentic ai');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const [papers, setPapers] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -18,13 +19,16 @@ const SearchPapers = () => {
 
     const user = JSON.parse(localStorage.getItem('user')) || { username: 'Researcher', email: 'user@example.com' };
 
+    const theme = localStorage.getItem('theme') || 'dark';
+    const isDark = theme === 'dark';
+
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
 
         setLoading(true);
         // setError(null); // Assuming existing error state logic remains
         try {
-            const res = await axios.get(`http://localhost:5001/api/arxiv/search?query=${searchQuery}`);
+            const res = await axios.get(`${API_BASE_URL}/arxiv/search?query=${searchQuery}`);
             setPapers(res.data);
         } catch (err) {
             console.error(err);
@@ -51,7 +55,7 @@ const SearchPapers = () => {
     // Called when user confirms in the modal
     const handleConfirmImport = async (reviewedPapers) => {
         try {
-            await axios.post('http://localhost:5001/api/papers/import', {
+            await axios.post(`${API_BASE_URL}/papers/import`, {
                 userId: user.id || user._id,
                 papers: reviewedPapers // These now have user-set domains/titles
             });
@@ -73,30 +77,34 @@ const SearchPapers = () => {
     };
 
     return (
-        <div className="flex h-screen bg-neutral-900 text-white font-sans overflow-hidden">
+        <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-neutral-900 text-white' : 'bg-[#ffffff] text-black'}`}>
             {/* Sidebar code remains same... */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-black/80 backdrop-blur-xl border-r border-white/10 flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 ${isSidebarOpen ? 'lg:flex' : 'lg:hidden'}`}>
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 ${isDark ? 'bg-black/80 border-white/5' : 'bg-white/80 border-black/5'} backdrop-blur-xl border-r flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 ${isSidebarOpen ? 'lg:flex' : 'lg:hidden'}`}>
                 {/* ... Sidebar Content ... */}
-                <div className="p-6 border-b border-white/5">
-                    <div className="flex items-center gap-2 text-purple-400 font-bold text-xl tracking-wide">
-                        <span className="p-1.5 rounded-lg bg-purple-500/20 text-purple-400"><LayoutDashboard size={20} /></span>
-                        ResearchPilot
+                <div className={`p-8 border-b ${isDark ? 'border-white/5' : 'border-black/5'}`}>
+                    <div className="flex items-center gap-3 text-[#38bdf8] font-bold text-2xl tracking-tight">
+                        <div className={`p-2 rounded-xl transition-all ${isDark ? 'bg-[#38bdf8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-white shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}>
+                            <LayoutDashboard size={22} className={isDark ? "text-[#38bdf8]" : "text-black"} />
+                        </div>
+                        <span className="font-black tracking-tight text-transparent bg-clip-text" style={{ backgroundImage: isDark ? 'linear-gradient(90deg, #38bdf8, #FFFFFF, #38bdf8)' : 'linear-gradient(90deg, #0284c7, #000000, #0284c7)' }}>CLARION</span>
                     </div>
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2">
-                    <SidebarItem icon={<LayoutDashboard size={18} />} text="Overview" onClick={() => navigate('/home')} />
-                    <SidebarItem icon={<Search size={18} />} text="Discover Papers" active />
-                    <SidebarItem icon={<FileText size={18} />} text="Doc Space" onClick={() => navigate('/doc-space')} />
-                    <SidebarItem icon={<BookOpen size={18} />} text="Paper Drafting" onClick={() => navigate('/draft')} />
-                    <SidebarItem icon={<FileText size={18} />} text="Workspace" onClick={() => navigate('/workspace')} />
-                    <SidebarItem icon={<FileText size={18} />} text="My Library" onClick={() => navigate('/workspace')} />
-                    <SidebarItem icon={<Settings size={18} />} text="Settings" />
-                    <SidebarItem icon={<Upload size={18} />} text="Import Data" onClick={() => setIsUploadModalOpen(true)} />
+                    <SidebarItem icon={<LayoutDashboard size={18} />} text="Home" onClick={() => navigate('/home')} isDark={isDark} />
+                    <SidebarItem icon={<Search size={18} />} text="Discover Papers" active isDark={isDark} />
+                    <SidebarItem icon={<BookOpen size={18} />} text="Paper Drafting" onClick={() => navigate('/draft')} isDark={isDark} />
+                    <SidebarItem icon={<Edit3 size={18} />} text="DocSpace Editor" onClick={() => navigate('/docspace')} isDark={isDark} />
+                    <SidebarItem icon={<FileText size={18} />} text="Workspace" onClick={() => navigate('/workspace')} isDark={isDark} />
+                    <SidebarItem icon={<Star size={18} />} text="My Library" onClick={() => navigate('/library')} isDark={isDark} />
+                    <SidebarItem icon={<Bot size={18} />} text="AI Assistant" onClick={() => navigate('/ai')} isDark={isDark} />
+                    <SidebarItem icon={<Compass size={18} />} text="Research Guide" onClick={() => navigate('/guide')} isDark={isDark} />
+                    <SidebarItem icon={<GitPullRequest size={18} />} text="Contributions" onClick={() => navigate('/contributions')} isDark={isDark} />
                 </nav>
 
-                <div className="p-4 border-t border-white/5">
-                    <button onClick={handleLogout} className="flex items-center gap-3 text-gray-400 hover:text-red-400 transition-colors w-full px-4 py-3 rounded-lg hover:bg-white/5">
+                <div className={`p-4 border-t ${isDark ? 'border-white/5' : 'border-black/5'} space-y-2`}>
+                    <SidebarItem icon={<Settings size={18} />} text="Settings" onClick={() => navigate('/settings')} isDark={isDark} />
+                    <button onClick={handleLogout} className={`flex items-center gap-3 transition-all duration-300 w-full px-4 py-3 rounded-2xl border border-transparent ${isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/5' : 'text-gray-600 hover:bg-red-50 hover:border-transparent hover:text-red-600 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}>
                         <LogOut size={18} />
                         <span className="font-medium">Sign Out</span>
                     </button>
@@ -104,26 +112,17 @@ const SearchPapers = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col relative bg-[#121212]">
+            <main className={`flex-1 flex flex-col relative ${isDark ? 'bg-[#121212]' : 'bg-[#f8fafc]'}`}>
                 {/* Header ... */}
-                <header className="z-10 h-20 flex items-center justify-between px-8 border-b border-white/5 bg-black/20 backdrop-blur-md">
+                <header className={`z-10 h-20 flex items-center justify-between px-8 border-b ${isDark ? 'border-white/5 bg-black/20 text-white' : 'border-black/5 bg-white/40 text-black'} backdrop-blur-md`}>
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition"
+                            className={`p-2 rounded-lg transition ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-black/5 hover:bg-black/10 text-gray-700'}`}
                         >
                             <Menu size={20} />
                         </button>
-                        <div className="w-6"></div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                        <div className="text-right hidden sm:block">
-                            <p className="text-sm font-bold text-white tracking-wide">{user.username}</p>
-                            <p className="text-xs text-gray-400">{user.email}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold text-white shadow-lg shadow-purple-500/20 ring-2 ring-white/10">
-                            {user.username ? user.username[0].toUpperCase() : 'U'}
-                        </div>
+                        <h2 className="text-xl font-semibold">Discover Papers</h2>
                     </div>
                 </header>
 
@@ -131,8 +130,8 @@ const SearchPapers = () => {
                     {/* ... Search UI ... */}
                     <div className="max-w-6xl mx-auto">
                         <div className="mb-8">
-                            <h1 className="text-3xl font-bold mb-2 text-white">Search Research Papers</h1>
-                            <p className="text-gray-400 text-sm">Search across millions of research papers and import them to your workspace</p>
+                            <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-black'}`}>Search Research Papers</h1>
+                            <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Search across millions of research papers and import them to your workspace</p>
                         </div>
 
                         {/* Search Bar & Actions */}
@@ -145,25 +144,25 @@ const SearchPapers = () => {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                                     placeholder="Search papers, topics, authors..."
-                                    className="w-full bg-white text-black pl-12 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    className={`w-full pl-12 pr-4 py-3 rounded-xl focus:outline-none transition-all duration-300 ${isDark ? 'bg-black text-white border border-[#38bdf8] focus:ring-2 focus:ring-[#38bdf8]/50 placeholder:text-gray-500' : 'bg-white text-black border border-transparent focus:ring-4 focus:ring-blue-100 placeholder:text-gray-400 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)] focus:shadow-[0_0_20px_rgba(56,189,248,0.5)]'}`}
                                 />
                             </div>
                             <button
                                 onClick={handleSearch}
                                 disabled={loading}
-                                className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-8 py-3 rounded-full transition-colors shadow-lg shadow-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold disabled:cursor-not-allowed transition-all duration-300 ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.25)] hover:shadow-[0_0_22px_rgba(56,189,248,0.55)]' : 'bg-white text-black border border-transparent hover:-translate-y-1 shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'}`}
                             >
-                                {loading ? <><Loader2 className="animate-spin" size={20} /> Searching...</> : 'Search'}
+                                {loading ? <><Loader2 className="animate-spin" size={18} /> Searching...</> : 'Search'}
                             </button>
                         </div>
 
                         {/* Import Action Bar */}
                         {selectedPapers.length > 0 && (
-                            <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-purple-900 border border-purple-500/50 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-6 animate-fade-in-up">
+                            <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 backdrop-blur-xl px-6 py-4 rounded-xl flex items-center gap-6 animate-fade-in-up ${isDark ? 'bg-black/90 border border-[#38bdf8]/30 text-white shadow-[0_0_30px_rgba(0,0,0,0.5)]' : 'bg-white/90 border border-transparent text-black shadow-[0_10px_30px_rgba(56,189,248,0.3)]'}`}>
                                 <span className="font-bold">{selectedPapers.length} papers selected</span>
                                 <button
                                     onClick={handleImportClick}
-                                    className="bg-white text-purple-900 px-6 py-2 rounded-lg font-bold hover:bg-gray-100 transition-colors flex items-center gap-2"
+                                    className={`px-6 py-2 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.25)] hover:shadow-[0_0_22px_rgba(56,189,248,0.55)]' : 'bg-white text-black border border-transparent hover:-translate-y-1 shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'}`}
                                 >
                                     <Upload size={18} />
                                     Add to Workspace
@@ -181,7 +180,7 @@ const SearchPapers = () => {
                         {/* Results List */}
                         <div className="space-y-4">
                             {papers.map((paper, index) => (
-                                <div key={index} className="bg-white text-black rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                <div key={index} className={`rounded-xl p-6 transition-all duration-300 ${isDark ? 'bg-white text-black border border-gray-100 shadow-sm hover:shadow-md' : 'bg-white text-black border border-transparent shadow-[4px_4px_0_#e2e8f0] hover:shadow-[0_0_25px_rgba(56,189,248,0.5)] hover:border-[#38bdf8] hover:-translate-y-1'}`}>
                                     <div className="flex items-start gap-4">
                                         <div className="pt-1">
                                             <input
@@ -204,6 +203,7 @@ const SearchPapers = () => {
                                             </p>
                                             <div className="flex items-center gap-3 text-xs">
                                                 <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded">{new Date(paper.published).toLocaleDateString()}</span>
+                                                <span className="bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded">Citations: {paper.citations || 0}</span>
                                                 <a href={paper.pdfLink} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 font-medium underline decoration-transparent hover:decoration-purple-800 transition-all">View Paper</a>
                                             </div>
                                         </div>
@@ -231,13 +231,19 @@ const SearchPapers = () => {
     );
 };
 
-const SidebarItem = ({ icon, text, active, onClick }) => (
-    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 group ${active ? 'bg-purple-600/20 text-purple-300 border border-purple-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-        <div className={`${active ? 'text-purple-400' : 'text-gray-500 group-hover:text-white'}`}>
-            {icon}
-        </div>
-        <span className="font-medium text-sm">{text}</span>
+const SidebarItem = ({ icon, text, active, onClick, isDark }) => (
+    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 group ${active
+        ? isDark
+            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+            : 'bg-[#e0f2fe] text-[#0284c7] border border-[#38bdf8]'
+        : isDark
+            ? 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent'
+            : 'bg-transparent text-gray-600 border border-transparent hover:bg-white hover:border-[#38bdf8] hover:text-black hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'
+        }`}>
+        <div className={`transition-transform ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
+        <span className="font-medium text-sm tracking-wide">{text}</span>
     </div>
 );
+
 
 export default SearchPapers;

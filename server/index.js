@@ -14,6 +14,9 @@ const compareRoutes = require('./routes/compareRoutes');
 const citationRoutes = require('./routes/citationRoutes');
 const improveRoutes = require('./routes/improveRoutes');
 const llamaRoutes = require('./routes/llamaRoutes');
+const impactRoutes = require('./routes/impactRoutes');
+const guideRoutes = require('./routes/guide');
+const researchBuilderRoutes = require('./routes/researchBuilder');
 const path = require('path');
 
 
@@ -36,9 +39,18 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/user_workspace', express.static(path.join(__dirname, 'user_workspace')));
 
 // Database Connection
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
+mongoose.connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 30000, // Increased timeout to 30s to prevent early timeouts
+})
+    .then(() => console.log('✅ MongoDB connected successfully to Cluster0'))
+    .catch(err => {
+        console.error('❌ MongoDB connection error details:');
+        console.error(`Error Code: ${err.code}`);
+        console.error(`Error Message: ${err.message}`);
+        if (err.message.includes('MongooseServerSelectionError')) {
+            console.error('Hint: This often means your IP is not whitelisted in MongoDB Atlas or the database is down.');
+        }
+    });
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -51,11 +63,15 @@ app.use('/api/compare', compareRoutes);
 app.use('/api/citations', citationRoutes);
 app.use('/api/improve', improveRoutes);
 app.use('/api/llama', llamaRoutes);
+app.use('/api/impact', impactRoutes);
+app.use('/api/guide', guideRoutes);
+app.use('/api/research-builder', researchBuilderRoutes);
+app.use('/api/contributions', require('./routes/contributions'));
 
 
 
 app.get('/', (req, res) => {
-    res.send('Research Pilot API is running');
+    res.send('Clarion API is running');
 });
 
 // Start Server

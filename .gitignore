@@ -17,6 +17,8 @@ yarn-error.log*
 server/server_error.txt
 server/test_log.txt
 server/test_output.txt
+server/server.log
+server/server_log.txt
 
 # OS files
 .DS_Store

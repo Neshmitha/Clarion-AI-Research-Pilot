@@ -1,50 +1,123 @@
-const axios = require('axios');
-const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
+const pdfParse = require('pdf-parse');
 const Paper = require('../models/Paper');
-
-const LLAMA_CLOUD_API_KEY = process.env.LLAMA_CLOUD_API_KEY;
-const LLAMA_DEPLOYMENT_URL = process.env.LLAMA_DEPLOYMENT_URL || 'http://127.0.0.1:4501/deployments/extraction-review';
+const { runAIWithPool } = require('../services/aiManager');
 
 /**
- * Uploads a file to LlamaCloud beta files API
- * @param {string} filePath - Absolute path to the file
- * @returns {Promise<string>} - The uploaded file ID
+ * Extracts text from a local PDF file using pdf-parse
  */
-async function uploadToLlamaCloud(filePath) {
-    if (!LLAMA_CLOUD_API_KEY) {
-        throw new Error('LLAMA_CLOUD_API_KEY not found in environment variables');
-    }
-
-    const form = new FormData();
-    form.append('purpose', 'user_data');
-    form.append('file', fs.createReadStream(filePath));
-
-    const response = await axios.post('https://api.cloud.llamaindex.ai/api/v1/beta/files', form, {
-        headers: {
-            ...form.getHeaders(),
-            'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}`
-        }
-    });
-
-    return response.data.id;
+async function extractTextFromPDF(filePath) {
+    const dataBuffer = fs.readFileSync(filePath);
+    const data = await pdfParse(dataBuffer);
+    return data.text;
 }
 
 /**
- * Extracts metadata from a research paper using LlamaIndex workflow
+ * Downloads a PDF from a URL to a temporary local path
+ */
+async function downloadPDF(pdfUrl, tempPath) {
+    const writer = fs.createWriteStream(tempPath);
+    const response = await axios({
+        url: pdfUrl,
+        method: 'GET',
+        responseType: 'stream',
+        timeout: 30000,
+        headers: { 'User-Agent': 'Clarion/1.0' }
+    });
+    response.data.pipe(writer);
+    return new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+    });
+}
+
+/**
+ * Uses AI Pool to extract structured research metadata from raw PDF text
+ */
+async function extractMetadataWithAI(pdfText, paperTitle) {
+    const truncatedText = pdfText.substring(0, 12000);
+
+    const prompt = `You are a research paper analysis expert. Extract structured metadata from the following research paper text.
+
+Paper Text:
+${truncatedText}
+
+Return ONLY a valid JSON object (no markdown, no extra text) with these fields:
+{
+  "title": "Full paper title",
+  "abstract": "Complete abstract text",
+  "authors": ["Author 1", "Author 2"],
+  "keywords": ["keyword1", "keyword2", "keyword3"],
+  "methodology": {
+    "approach": "Brief description of the core approach",
+    "techniques": ["technique1", "technique2"],
+    "datasets": ["dataset1", "dataset2"]
+  },
+  "findings": {
+    "main_result": "Key result or contribution in one sentence",
+    "metrics": ["metric1: value1", "metric2: value2"],
+    "conclusion": "Brief conclusion"
+  },
+  "domain": "Research domain (e.g. Computer Vision, NLP, etc.)",
+  "year": "Publication year if found"
+}`;
+
+    try {
+        const rawText = await runAIWithPool(prompt, { jsonMode: true });
+
+        // Strip markdown code fences if present
+        const cleaned = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+        try {
+            return JSON.parse(cleaned);
+        } catch (e) {
+            console.error('JSON parse failed, returning fallback metadata');
+            return {
+                title: paperTitle || 'Unknown',
+                abstract: pdfText.substring(0, 800),
+                keywords: [],
+                methodology: { approach: 'See full paper text' },
+                findings: { main_result: 'See full paper text' }
+            };
+        }
+    } catch (poolErr) {
+        console.error('[AI POOL] Metadata Extraction Failed:', poolErr.message);
+        throw poolErr;
+    }
+}
+
+/**
+ * Main extraction endpoint - replaces LlamaIndex with AI Pool + pdf-parse
  */
 exports.extractMetadata = async (req, res) => {
+    let tempPath = null;
+
     try {
         const { filePath, pdfUrl, paperId } = req.body;
-        let fileId;
+        let pdfText = '';
+        let paperTitle = '';
 
-        if (!LLAMA_CLOUD_API_KEY) {
-            return res.status(500).json({ error: 'LLAMA_CLOUD_API_KEY is not configured on the server.' });
+        let hasWrittenContent = false;
+
+        // Get paper title if we have a paperId
+        if (paperId) {
+            const paper = await Paper.findById(paperId);
+            if (paper) {
+                paperTitle = paper.title;
+                if (paper.content) {
+                    // Extract text from the drafted HTML content, removing HTML tags
+                    pdfText = paper.content.replace(/<[^>]*>?/gm, ' ');
+                    hasWrittenContent = true;
+                }
+            }
         }
 
-        if (filePath) {
-            // Case 1: Local file upload
+        if (hasWrittenContent) {
+            console.log(`Extracting text from drafted paper content: ${paperTitle}`);
+        } else if (filePath) {
+            // Case 1: Local uploaded PDF
             const absolutePath = path.isAbsolute(filePath)
                 ? filePath
                 : path.join(__dirname, '..', filePath);
@@ -53,81 +126,57 @@ exports.extractMetadata = async (req, res) => {
                 return res.status(404).json({ error: 'File not found at specified path' });
             }
 
-            console.log(`Uploading local file to LlamaCloud (via Local Deployment): ${absolutePath}`);
-            fileId = await uploadToLlamaCloud(absolutePath);
+            console.log(`Extracting text from local PDF: ${absolutePath}`);
+            pdfText = await extractTextFromPDF(absolutePath);
+
         } else if (pdfUrl) {
-            // Case 2: URL (e.g. arXiv)
-            // LlamaCloud beta files API typically requires a file upload.
-            // For URLs, we'd ideally download first or use a direct URL feature if available.
-            // For now, let's assume we download it briefly.
+            // Case 2: Remote PDF URL (e.g. arXiv)
             const tempFileName = `temp_${Date.now()}.pdf`;
-            const tempPath = path.join(__dirname, '..', 'uploads', tempFileName);
+            tempPath = path.join(__dirname, '..', 'uploads', tempFileName);
+
+            // Ensure uploads dir exists
+            const uploadsDir = path.join(__dirname, '..', 'uploads');
+            if (!fs.existsSync(uploadsDir)) {
+                fs.mkdirSync(uploadsDir, { recursive: true });
+            }
 
             console.log(`Downloading PDF from URL: ${pdfUrl}`);
-            const writer = fs.createWriteStream(tempPath);
-            const response = await axios({
-                url: pdfUrl,
-                method: 'GET',
-                responseType: 'stream'
-            });
+            await downloadPDF(pdfUrl, tempPath);
+            pdfText = await extractTextFromPDF(tempPath);
 
-            response.data.pipe(writer);
-
-            await new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
-
-            fileId = await uploadToLlamaCloud(tempPath);
-
-            // Cleanup temp file
-            fs.unlinkSync(tempPath);
         } else {
-            return res.status(400).json({ error: 'Missing filePath or pdfUrl' });
+            return res.status(400).json({ error: 'Missing filePath, pdfUrl, or paper content' });
         }
 
-        console.log(`File uploaded to LlamaCloud with ID: ${fileId}. Starting local workflow...`);
+        if (!pdfText || pdfText.trim().length < 100) {
+            return res.status(422).json({ error: 'Could not extract readable text from this PDF. It may be scanned or image-based.' });
+        }
 
-        // Step 2: Trigger the local workflow
-        // The endpoint structure with local llamactl serve is:
-        // /workflows/<workflow_name>/run
-        const workflowName = 'process-file';
-        const workflowResponse = await axios.post(`${LLAMA_DEPLOYMENT_URL}/workflows/${workflowName}/run`, {
-            start_event: { file_id: fileId }
-        }, {
-            headers: {
-                'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        console.log(`Extracted ${pdfText.length} characters. Sending to AI Pool for analysis...`);
 
-        // The 'run' endpoint might be synchronous and return the extracted data or a handler
-        // Based on the snippet, 'run' returns the result directly if it's sync.
-        // If it returns a handler, we would need to poll /handlers/<id>.
+        // Use AI Pool to extract structured metadata
+        const metadata = await extractMetadataWithAI(pdfText, paperTitle);
 
-        // Extract the actual metadata from the workflow result
-        const metadata = workflowResponse.data?.result?.value?.result;
+        console.log('Extraction successful:', metadata?.title);
 
-        console.log('Extracted Metadata:', metadata);
-
-        // Step 3: Save metadata to the Paper model if paperId is provided
+        // Save to Paper model if paperId provided
         if (paperId && metadata) {
-            await Paper.findByIdAndUpdate(paperId, {
-                llamaMetadata: metadata
-            });
-            console.log(`Saved LlamaIndex metadata for paper: ${paperId}`);
+            await Paper.findByIdAndUpdate(paperId, { llamaMetadata: metadata });
+            console.log(`Saved metadata for paper: ${paperId}`);
         }
 
-        res.json({
-            success: true,
-            data: metadata || workflowResponse.data
-        });
+        res.json({ success: true, data: metadata });
 
     } catch (err) {
-        console.error('LlamaIndex Extraction Error:', err.response?.data || err.message);
+        console.error('Extraction Error:', err.message);
         res.status(500).json({
-            error: 'Failed to extract metadata from LlamaIndex',
-            details: err.response?.data || err.message
+            error: 'Failed to extract metadata',
+            details: err.message
         });
+    } finally {
+        // Cleanup temp file
+        if (tempPath && fs.existsSync(tempPath)) {
+            fs.unlinkSync(tempPath);
+        }
     }
 };

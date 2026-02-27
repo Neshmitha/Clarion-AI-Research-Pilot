@@ -1,7 +1,5 @@
 const axios = require('axios');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const { runAIWithPool } = require('../services/aiManager');
 
 // Search ArXiv and generate comparison paragraph + table using Gemini
 exports.compareWithRelatedWork = async (req, res) => {
@@ -31,7 +29,7 @@ exports.compareWithRelatedWork = async (req, res) => {
             return res.status(404).json({ error: 'No related papers found on ArXiv for this topic.' });
         }
 
-        // 2. Ask Gemini to generate comparison paragraph + comparison table
+        // 2. Ask AI to generate comparison paragraph + comparison table
         const paperList = papers.map((p, i) => `${i + 1}. "${p.title}" (${p.year}) — ${p.summary}`).join('\n');
         const prompt = `You are an academic research analyst. Given the topic "${topic}" and these related papers:
 
@@ -43,13 +41,52 @@ Generate:
 
 Be technical, scholarly, and professional. Output only the paragraph followed by the table.`;
 
-        const result = await model.generateContent(prompt);
-        const analysis = result.response.text();
-
-        res.json({ papers, analysis });
+        try {
+            const analysis = await runAIWithPool(prompt);
+            res.json({ papers, analysis });
+        } catch (poolErr) {
+            console.error('[AI POOL] Related Work Comparison Failed:', poolErr.message);
+            res.status(500).json({ error: 'Comparison failed on all AI services' });
+        }
 
     } catch (err) {
         console.error('Compare error:', err.message);
         res.status(500).json({ error: 'Comparison failed', details: err.message });
+    }
+};
+
+// Compare specific papers from the user's library
+exports.compareSelectedPapers = async (req, res) => {
+    try {
+        const { papers } = req.body;
+        if (!papers || !Array.isArray(papers) || papers.length < 2) {
+            return res.status(400).json({ error: 'At least 2 papers are required for comparison' });
+        }
+
+        const paperList = papers.map((p, i) => `${i + 1}. "${p.title}" (${p.year || 'Unknown Year'}) — Domain: ${p.domain || 'N/A'}, Citations: ${p.citations || 0}, Impact Score: ${p.impactScore || 'N/A'}\n${p.abstract || p.summary || ''}`).join('\n\n');
+
+        const prompt = `You are an expert academic research assistant. You have been asked to analyze and compare the following ${papers.length} research papers selected by the user:
+
+${paperList}
+
+Provide a highly professional and analytical comparative analysis. Your response should:
+1. Briefly introduce the topic or common themes these papers cover.
+2. Outline the key strengths and core contributions of each paper.
+3. Compare their approaches, methodologies, or findings.
+4. Conclude with a synthesizing paragraph on which paper might be most impactful or relevant depending on different research needs.
+
+Format your response in Markdown. Do not include a table unless necessary. Be objective and scholarly.`;
+
+        try {
+            const analysis = await runAIWithPool(prompt);
+            res.json({ analysis });
+        } catch (poolErr) {
+            console.error('[AI POOL] Custom Comparison Failed:', poolErr.message);
+            res.status(500).json({ error: 'Comparison failed on all AI services' });
+        }
+
+    } catch (err) {
+        console.error('Custom compare error:', err.message);
+        res.status(500).json({ error: 'Custom Comparison failed', details: err.message });
     }
 };

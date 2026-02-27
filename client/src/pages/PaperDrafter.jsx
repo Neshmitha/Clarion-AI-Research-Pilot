@@ -1,12 +1,16 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import html2pdf from 'html2pdf.js';
 import {
     FileText, Sparkles, Loader2,
     LayoutDashboard, Search, LogOut, Menu,
     BookOpen, FileType, CheckCircle2, Printer, RefreshCw,
-    ChevronDown, ExternalLink, AlertCircle, CheckCircle, XCircle
+    ChevronDown, ExternalLink, AlertCircle, CheckCircle, XCircle, Settings, Bot, Star, X
+    , Edit3, Save
+    , Compass
+    , GitPullRequest
 } from 'lucide-react';
+import API_BASE_URL from '../config';
 
 // ─── Templates ────────────────────────────────────────────────────────────────
 const TEMPLATES = [
@@ -75,7 +79,7 @@ const parseDocument = (rawText, topicFallback) => {
 };
 
 // ─── Render body lines ────────────────────────────────────────────────────────
-const renderBodyLines = (lines, style, onSectionImprove) => {
+const renderBodyLines = (lines, style, onSectionImprove, isDark) => {
     let sectionBuffer = [];
     let sectionHeader = null;
     const result = [];
@@ -84,7 +88,7 @@ const renderBodyLines = (lines, style, onSectionImprove) => {
         if (sectionHeader !== null) {
             const sectionText = [sectionHeader, ...sectionBuffer].join('\n');
             result.push(
-                <SectionWrapper key={`section-${idx}`} text={sectionText} onImprove={onSectionImprove} style={style} sectionBuffer={sectionBuffer} sectionHeader={sectionHeader} />
+                <SectionWrapper key={`section-${idx}`} text={sectionText} onImprove={onSectionImprove} style={style} sectionBuffer={sectionBuffer} sectionHeader={sectionHeader} isDark={isDark} />
             );
             sectionHeader = null;
             sectionBuffer = [];
@@ -109,14 +113,14 @@ const renderBodyLines = (lines, style, onSectionImprove) => {
 
 // ─── Section Wrapper with hover Improve buttons ───────────────────────────────
 const IMPROVE_ACTIONS = [
-    { key: 'clarity', icon: '✏️', label: 'Improve Clarity' },
-    { key: 'results', icon: '📊', label: 'Add Experimental Results' },
-    { key: 'math', icon: '🔬', label: 'Add Mathematical Model' },
-    { key: 'metrics', icon: '📈', label: 'Add Evaluation Metrics' },
-    { key: 'depth', icon: '🧠', label: 'Increase Technical Depth' },
+    { key: 'clarity', label: 'Improve Clarity' },
+    { key: 'results', label: 'Add Experimental Results' },
+    { key: 'math', label: 'Add Mathematical Model' },
+    { key: 'metrics', label: 'Add Evaluation Metrics' },
+    { key: 'depth', label: 'Increase Technical Depth' },
 ];
 
-const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style }) => {
+const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, isDark }) => {
     const [hovered, setHovered] = useState(false);
     const [improving, setImproving] = useState(false);
 
@@ -194,31 +198,19 @@ const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style }
 
             {/* Hover improve toolbar */}
             {hovered && !improving && sectionHeader && (
-                <div style={{
-                    position: 'absolute', top: 0, right: 0,
-                    background: '#1a1a2e', border: '1px solid #7c3aed', borderRadius: '8px',
-                    padding: '4px', display: 'flex', flexDirection: 'column', gap: '2px', zIndex: 10,
-                    boxShadow: '0 4px 20px rgba(124,58,237,0.4)'
-                }}>
+                <div className={`absolute top-0 right-0 p-1 flex flex-col gap-0.5 z-10 rounded-lg shadow-lg ${isDark ? 'bg-[#1a1a2e] border border-[#38bdf8] shadow-[0_4px_20px_rgba(56,189,248,0.4)]' : 'bg-white border border-transparent shadow-[0_0_30px_rgba(56,189,248,0.2)]'}`}>
                     {IMPROVE_ACTIONS.map(a => (
                         <button
                             key={a.key}
                             onClick={() => { setImproving(true); onImprove(text, a.key, setImproving); }}
-                            style={{
-                                background: 'transparent', border: 'none', color: '#d1d5db',
-                                padding: '4px 8px', borderRadius: '6px', cursor: 'pointer',
-                                fontSize: '11px', textAlign: 'left', whiteSpace: 'nowrap',
-                                transition: 'background 0.15s'
-                            }}
-                            onMouseEnter={e => e.target.style.background = '#7c3aed20'}
-                            onMouseLeave={e => e.target.style.background = 'transparent'}
+                            className={`px-3 py-1.5 rounded-md text-[11px] font-bold text-left whitespace-nowrap transition-all ${isDark ? 'text-[#d1d5db] hover:bg-[#38bdf8]/10 hover:text-white border border-transparent' : 'bg-white text-black hover:bg-blue-50 hover:text-blue-600 hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}
                         >
-                            {a.icon} {a.label}
+                            {a.label}
                         </button>
                     ))}
                 </div>
             )}
-            {improving && <div style={{ position: 'absolute', top: 2, right: 2, fontSize: '10px', color: '#7c3aed', background: '#1a1a2e', padding: '2px 6px', borderRadius: '4px' }}>✨ Improving...</div>}
+            {improving && <div className={`absolute top-1 right-1 text-[10px] px-2 py-1 rounded font-bold ${isDark ? 'text-[#38bdf8] bg-[#1a1a2e]' : 'text-blue-600 bg-white border border-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.3)]'}`}>✨ Improving...</div>}
         </div>
     );
 };
@@ -242,7 +234,7 @@ const ContributionsBlock = ({ lines, isIEEE }) => {
 };
 
 // ─── IEEE Paper ───────────────────────────────────────────────────────────────
-const IEEEPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove }) => {
+const IEEEPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
     const font = "'Times New Roman', Times, serif";
     const style = {
         bodySize: '10pt', lineHeight: 1.3, indent: '18pt', emptyHeight: '0', refSize: '8pt',
@@ -257,7 +249,7 @@ const IEEEPaper = ({ paperRef, title, abstractLines, keywordsLines, contribution
                     {(isConference ? ['Author Name*', 'Author Name†', '3rd Name‡'] : [user.username || 'Author Name', 'Co-Author']).map((a, i) => (
                         <div key={i} style={{ textAlign: 'center' }}>
                             <div style={{ fontStyle: 'italic' }}>{a}</div>
-                            <div style={{ fontSize: '9pt' }}>ResearchPilot AI System</div>
+                            <div style={{ fontSize: '9pt' }}>Clarion AI System</div>
                         </div>
                     ))}
                 </div>
@@ -275,14 +267,14 @@ const IEEEPaper = ({ paperRef, title, abstractLines, keywordsLines, contribution
             <ContributionsBlock lines={contributionLines} isIEEE={true} />
             <div style={{ borderBottom: '1px solid #aaa', marginBottom: '8pt' }} />
             <div style={{ columnCount: 2, columnGap: '0.25in', columnFill: 'balance', textAlign: 'justify', hyphens: 'auto' }}>
-                {renderBodyLines(bodyLines, style, onSectionImprove)}
+                {renderBodyLines(bodyLines, style, onSectionImprove, isDark)}
             </div>
         </div>
     );
 };
 
 // ─── Springer Paper ───────────────────────────────────────────────────────────
-const SpringerPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove }) => {
+const SpringerPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
     const headFont = "'Arial', 'Helvetica Neue', sans-serif";
     const bodyFont = "'Times New Roman', Times, serif";
     const style = {
@@ -298,7 +290,7 @@ const SpringerPaper = ({ paperRef, title, abstractLines, keywordsLines, contribu
                     {[user.username || 'Author Name', 'Co-Author Name'].map((a, i) => (
                         <div key={i} style={{ textAlign: 'center' }}>
                             <div style={{ fontWeight: '600', fontFamily: headFont }}>{a}</div>
-                            <div style={{ fontSize: '9pt', color: '#555' }}>ResearchPilot AI System</div>
+                            <div style={{ fontSize: '9pt', color: '#555' }}>Clarion AI System</div>
                         </div>
                     ))}
                 </div>
@@ -316,14 +308,100 @@ const SpringerPaper = ({ paperRef, title, abstractLines, keywordsLines, contribu
             )}
             <ContributionsBlock lines={contributionLines} isIEEE={false} />
             <div style={isConference ? { columnCount: 2, columnGap: '0.3in', columnFill: 'balance', textAlign: 'justify', hyphens: 'auto' } : { textAlign: 'justify' }}>
-                {renderBodyLines(bodyLines, style, onSectionImprove)}
+                {renderBodyLines(bodyLines, style, onSectionImprove, isDark)}
+            </div>
+        </div>
+    );
+};
+
+// ─── APA Paper ───────────────────────────────────────────────────────────
+const APAPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
+    const font = "'Times New Roman', Times, serif";
+    const style = {
+        bodySize: '11pt', lineHeight: 2.0, indent: '0.5in', emptyHeight: '0', refSize: '11pt',
+        h2Style: { fontWeight: 'bold', fontSize: '11pt', textAlign: 'center', marginTop: '12pt', marginBottom: '12pt' },
+        h3Style: { fontWeight: 'bold', fontStyle: 'normal', fontSize: '11pt', textAlign: 'left', marginTop: '12pt', marginBottom: '12pt' },
+    };
+    return (
+        <div ref={paperRef} style={{ background: 'white', color: 'black', fontFamily: font, fontSize: '11pt', padding: '1in', minHeight: '11in', width: '8.5in', boxSizing: 'border-box' }}>
+            <div style={{ textAlign: 'center', marginBottom: '24pt' }}>
+                <div style={{ fontSize: '12pt', fontWeight: 'bold', marginBottom: '12pt' }}>{title}</div>
+                <div style={{ fontSize: '11pt', marginBottom: '6pt' }}>{user.username || 'Author Name'}, Co-Author Name</div>
+                <div style={{ fontSize: '11pt' }}>Department of Research, Clarion AI</div>
+            </div>
+            {abstractLines.length > 0 && (
+                <div style={{ marginBottom: '24pt' }}>
+                    <div style={{ fontWeight: 'bold', textAlign: 'center', marginBottom: '12pt' }}>Abstract</div>
+                    <div style={{ textAlign: 'left', textIndent: '0' }}>{abstractLines.join(' ')}</div>
+                </div>
+            )}
+            <div style={{ textAlign: 'left', hyphens: 'auto' }}>
+                {renderBodyLines(bodyLines, style, onSectionImprove, isDark)}
+            </div>
+        </div>
+    );
+};
+
+// ─── ACM Paper ───────────────────────────────────────────────────────────
+const ACMPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
+    const font = "'Libertine', 'Linux Libertine', 'Times New Roman', serif";
+    const headFont = "'Biolinum', 'Linux Biolinum', 'Arial', sans-serif";
+    const style = {
+        bodySize: '9pt', lineHeight: 1.4, indent: '1em', emptyHeight: '0', refSize: '8pt',
+        h2Style: { fontFamily: headFont, fontWeight: 'bold', fontSize: '9pt', textTransform: 'uppercase', marginTop: '10pt', marginBottom: '4pt' },
+        h3Style: { fontFamily: headFont, fontWeight: 'bold', fontSize: '9pt', marginTop: '6pt', marginBottom: '2pt' },
+    };
+    return (
+        <div ref={paperRef} style={{ background: 'white', color: 'black', fontFamily: font, fontSize: '9pt', padding: '0.75in', minHeight: '11in', width: '8.5in', boxSizing: 'border-box' }}>
+            <div style={{ textAlign: 'center', marginBottom: '20pt', borderBottom: '1px solid black', paddingBottom: '10pt' }}>
+                <div style={{ fontFamily: headFont, fontSize: '16pt', fontWeight: 'bold', marginBottom: '10pt' }}>{title}</div>
+                <div style={{ fontSize: '10pt', marginBottom: '4pt' }}>{user.username || 'Author Name'}, Co-Author</div>
+                <div style={{ fontSize: '9pt', fontStyle: 'italic' }}>Clarion AI Institute</div>
+            </div>
+            <div style={{ columnCount: 2, columnGap: '0.33in', columnFill: 'balance', textAlign: 'justify', hyphens: 'auto' }}>
+                {abstractLines.length > 0 && (
+                    <div style={{ marginBottom: '8pt' }}>
+                        <div style={{ fontFamily: headFont, fontWeight: 'bold', fontSize: '9pt', textTransform: 'uppercase', marginBottom: '4pt' }}>Abstract</div>
+                        <div>{abstractLines.join(' ')}</div>
+                    </div>
+                )}
+                {renderBodyLines(bodyLines, style, onSectionImprove, isDark)}
+            </div>
+        </div>
+    );
+};
+
+// ─── Elsevier Paper ───────────────────────────────────────────────────────────
+const ElsevierPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
+    const font = "'Times New Roman', Times, serif";
+    const headFont = "Arial, sans-serif";
+    const style = {
+        bodySize: '10pt', lineHeight: 1.5, indent: '0', emptyHeight: '0', refSize: '8pt',
+        h2Style: { fontFamily: headFont, fontWeight: 'bold', fontSize: '10pt', textTransform: 'uppercase', marginTop: '12pt', marginBottom: '6pt' },
+        h3Style: { fontFamily: headFont, fontWeight: 'bold', fontSize: '10pt', fontStyle: 'italic', marginTop: '8pt', marginBottom: '4pt' },
+    };
+    return (
+        <div ref={paperRef} style={{ background: 'white', color: 'black', fontFamily: font, fontSize: '10pt', padding: '1in', minHeight: '11in', width: '8.5in', boxSizing: 'border-box' }}>
+            <div style={{ borderBottom: '1px solid #ccc', paddingBottom: '12pt', marginBottom: '12pt' }}>
+                <div style={{ fontFamily: headFont, fontSize: '18pt', fontWeight: 'bold', marginBottom: '8pt' }}>{title}</div>
+                <div style={{ fontSize: '10pt', marginBottom: '8pt' }}><strong>{user.username || 'Author Name'}</strong>, Co-Author Name</div>
+                <div style={{ fontSize: '8pt', fontStyle: 'italic' }}>Clarion Research, AI Division</div>
+            </div>
+            {abstractLines.length > 0 && (
+                <div style={{ marginBottom: '16pt', padding: '10pt', borderTop: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
+                    <div style={{ fontFamily: headFont, fontWeight: 'bold', fontSize: '9pt', textTransform: 'uppercase', marginBottom: '4pt' }}>Abstract</div>
+                    <div style={{ fontSize: '9pt', lineHeight: 1.4 }}>{abstractLines.join(' ')}</div>
+                </div>
+            )}
+            <div style={{ textAlign: 'justify', columnCount: isConference ? 2 : 1, columnGap: '0.3in' }}>
+                {renderBodyLines(bodyLines, style, onSectionImprove, isDark)}
             </div>
         </div>
     );
 };
 
 // ─── Compare Modal ────────────────────────────────────────────────────────────
-const CompareModal = ({ onClose, topic, onInsert }) => {
+const CompareModal = ({ onClose, topic, onInsert, isDark }) => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
@@ -331,7 +409,7 @@ const CompareModal = ({ onClose, topic, onInsert }) => {
     const fetchComparison = async () => {
         setLoading(true); setError(null);
         try {
-            const res = await fetch('http://localhost:5001/api/compare', {
+            const res = await fetch(`${API_BASE_URL}/compare`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ topic })
             });
@@ -342,57 +420,132 @@ const CompareModal = ({ onClose, topic, onInsert }) => {
         finally { setLoading(false); }
     };
 
+    useEffect(() => {
+        fetchComparison();
+    }, []);
+
+    const renderMarkdown = (text) => {
+        if (!text) return null;
+
+        const lines = text.split('\n');
+        const elements = [];
+        let tableRows = [];
+        let inTable = false;
+
+        const flushTable = () => {
+            if (tableRows.length > 0) {
+                // Ignore the separator row `|---|---|`
+                const contentRows = tableRows.filter(r => !r.includes('---|') && !r.includes('---+') && !r.match(/^\|[-\s|]+\|$/));
+                if (contentRows.length > 0) {
+                    elements.push(
+                        <div key={`table-${elements.length}`} style={{ overflowX: 'auto', margin: '20px 0' }}>
+                            <table style={{ borderCollapse: 'collapse', width: '100%', border: '1px solid #d1d5db', fontSize: '13px', fontFamily: 'sans-serif' }}>
+                                <tbody>
+                                    {contentRows.map((rowStr, rIdx) => {
+                                        const cols = rowStr.split('|').map(c => c.trim()).filter((c, i, a) => !(i === 0 && c === '') && !(i === a.length - 1 && c === ''));
+                                        return (
+                                            <tr key={rIdx} style={{ background: rIdx === 0 ? '#f9fafb' : 'white', borderBottom: '1px solid #e5e7eb' }}>
+                                                {cols.map((col, cIdx) => {
+                                                    const cleanCol = col.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                                    return (
+                                                        <td key={cIdx} style={{ padding: '10px 14px', borderRight: '1px solid #e5e7eb', fontWeight: rIdx === 0 ? 'bold' : 'normal', color: '#111827', verticalAlign: 'top' }} dangerouslySetInnerHTML={{ __html: cleanCol }} />
+                                                    );
+                                                })}
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    );
+                }
+                tableRows = [];
+                inTable = false;
+            }
+        };
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            // Basic check for table rows
+            if (line.startsWith('|') && line.endsWith('|')) {
+                inTable = true;
+                tableRows.push(line);
+            } else {
+                if (inTable) flushTable();
+                if (!line) {
+                    elements.push(<div key={`br-${i}`} style={{ height: '8px' }} />);
+                    continue;
+                }
+
+                const processBold = (str) => str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+                if (line.startsWith('### ')) {
+                    elements.push(<h3 key={`h3-${i}`} style={{ fontSize: '15px', fontWeight: 'bold', margin: '16px 0 8px 0', color: '#111827' }} dangerouslySetInnerHTML={{ __html: processBold(line.replace('### ', '')) }} />);
+                } else if (line.startsWith('## ')) {
+                    elements.push(<h2 key={`h2-${i}`} style={{ fontSize: '17px', fontWeight: 'bold', margin: '20px 0 10px 0', color: '#111827', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px' }} dangerouslySetInnerHTML={{ __html: processBold(line.replace('## ', '')) }} />);
+                } else if (line.startsWith('# ')) {
+                    elements.push(<h1 key={`h1-${i}`} style={{ fontSize: '20px', fontWeight: 'bold', margin: '24px 0 12px 0', color: '#111827' }} dangerouslySetInnerHTML={{ __html: processBold(line.replace('# ', '')) }} />);
+                } else if (line.startsWith('- ') || line.startsWith('* ')) {
+                    elements.push(
+                        <div key={`li-${i}`} style={{ marginLeft: '16px', marginBottom: '6px', display: 'flex', gap: '8px' }}>
+                            <span style={{ color: '#4b5563' }}>•</span>
+                            <span dangerouslySetInnerHTML={{ __html: processBold(line.substring(2)) }} />
+                        </div>
+                    );
+                } else {
+                    elements.push(<p key={`p-${i}`} style={{ margin: '0 0 12px 0', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: processBold(line) }} />);
+                }
+            }
+        }
+        if (inTable) flushTable();
+        return elements;
+    };
+
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div style={{ background: '#111', border: '1px solid #7c3aed', borderRadius: '16px', padding: '24px', maxWidth: '800px', width: '100%', maxHeight: '80vh', overflowY: 'auto', color: 'white' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', color: '#a78bfa' }}>🔍 Related Work Comparison</h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '20px' }}>×</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(8px)' }}>
+            <div className={`p-8 max-w-[900px] w-full max-h-[85vh] overflow-y-auto rounded-[20px] transition-all ${isDark ? 'bg-[#0a0a0a] border-[1.5px] border-[#38bdf8] text-white shadow-[0_0_40px_rgba(56,189,248,0.15)]' : 'bg-white border border-transparent text-black shadow-[0_0_50px_rgba(56,189,248,0.3)]'}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h3 className={`m-0 text-[18px] font-bold tracking-[0.02em] ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>🔍 Comparative Analysis</h3>
+                    <button onClick={onClose} className={`cursor-pointer p-2 rounded-lg flex items-center justify-center transition-all ${isDark ? 'bg-white/5 text-[#9ca3af] hover:text-white border-2 border-transparent' : 'bg-white text-gray-400 hover:text-black hover:shadow-[0_0_15px_rgba(56,189,248,0.4)] hover:bg-gray-50'}`}>
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {!result && !loading && (
                     <div style={{ textAlign: 'center', padding: '20px' }}>
-                        <p style={{ color: '#9ca3af', marginBottom: '16px', fontSize: '14px' }}>
-                            Pull 3–5 similar papers from ArXiv and generate a comparison paragraph + table for: <strong style={{ color: '#d1d5db' }}>"{topic}"</strong>
+                        <p className={`mb-4 text-[14px] ${isDark ? 'text-[#9ca3af]' : 'text-gray-600'}`}>
+                            Pull 3–5 similar papers from ArXiv and generate a comparison paragraph + table for: <strong className={isDark ? 'text-[#d1d5db]' : 'text-black'}>"{topic}"</strong>
                         </p>
-                        <button onClick={fetchComparison} style={{ background: 'linear-gradient(to right,#7c3aed,#4f46e5)', border: 'none', color: 'white', padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        <button onClick={fetchComparison} className={`px-6 py-2.5 rounded-xl text-[14px] font-bold cursor-pointer transition-all ${isDark ? 'bg-[#38bdf8] border-none text-black hover:bg-blue-400' : 'bg-white border border-[#38bdf8] text-blue-600 shadow-[0_0_15px_rgba(56,189,248,0.4)] hover:shadow-[0_0_25px_rgba(56,189,248,0.6)] hover:-translate-y-0.5'}`}>
                             Fetch & Compare
                         </button>
                     </div>
                 )}
 
                 {loading && (
-                    <div style={{ textAlign: 'center', padding: '30px', color: '#a78bfa' }}>
+                    <div className={`text-center p-[30px] ${isDark ? 'text-[#38bdf8]' : 'text-blue-600'}`}>
                         <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 12px' }} />
                         <p>Searching ArXiv and generating comparison...</p>
                     </div>
                 )}
 
-                {error && <div style={{ background: '#7f1d1d', borderRadius: '8px', padding: '12px', color: '#fca5a5', marginBottom: '12px' }}>❌ {error}</div>}
+                {error && <div className={`rounded-lg p-3 mb-3 ${isDark ? 'bg-[#7f1d1d] text-[#fca5a5]' : 'bg-red-50 border-2 border-red-500 text-red-700 font-bold'}`}>❌ {error}</div>}
 
                 {result && (
                     <div>
-                        <h4 style={{ color: '#a78bfa', marginBottom: '12px', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Papers Found ({result.papers.length})</h4>
+                        <h4 className={`mb-3 text-[13px] uppercase tracking-[0.05em] font-bold ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>Papers Found ({result.papers.length})</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
                             {result.papers.map((p, i) => (
-                                <div key={i} style={{ background: '#1f1f2e', borderRadius: '8px', padding: '10px 12px', border: '1px solid #374151' }}>
+                                <div key={i} className={`rounded-lg p-3 ${isDark ? 'bg-[#1f1f2e] border border-[#374151]' : 'bg-white border border-transparent shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}>
                                     <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>{p.title}</div>
-                                    <div style={{ fontSize: '11px', color: '#9ca3af' }}>{p.authors} · {p.year}</div>
-                                    {p.id && <a href={p.id} target="_blank" rel="noreferrer" style={{ fontSize: '10px', color: '#7c3aed', textDecoration: 'none' }}>View on ArXiv ↗</a>}
+                                    <div className={`text-[11px] ${isDark ? 'text-[#9ca3af]' : 'text-gray-600'}`}>{p.authors} · {p.year}</div>
+                                    {p.id && <a href={p.id} target="_blank" rel="noreferrer" className={`text-[10px] no-underline ${isDark ? 'text-[#38bdf8]' : 'text-blue-600 font-bold hover:underline'}`}>View on ArXiv ↗</a>}
                                 </div>
                             ))}
                         </div>
-                        <h4 style={{ color: '#a78bfa', marginBottom: '8px', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI-Generated Analysis</h4>
-                        <div style={{ background: '#1f1f2e', borderRadius: '8px', padding: '16px', fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontFamily: 'monospace', color: '#e5e7eb', border: '1px solid #374151' }}>
-                            {result.analysis}
-                        </div>
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                            <button onClick={fetchComparison} style={{ background: 'transparent', border: '1px solid #7c3aed', color: '#a78bfa', padding: '10px 16px', borderRadius: '10px', fontSize: '12px', cursor: 'pointer', flex: 1 }}>
-                                🔄 Refresh
-                            </button>
-                            <button onClick={() => onInsert(result.analysis)} style={{ background: 'linear-gradient(to right, #7c3aed, #4f46e5)', border: 'none', color: 'white', padding: '10px 16px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', flex: 1 }}>
-                                📥 Insert into Paper
-                            </button>
+                        <h4 className={`mb-3 text-[13px] uppercase tracking-[0.05em] font-bold ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>AI-Generated Analysis</h4>
+                        <div className={`rounded-lg p-6 text-[14px] font-serif ${isDark ? 'bg-white text-[#111827] border border-[#e5e7eb] shadow-inner' : 'bg-white text-black border border-transparent shadow-inner'}`}>
+                            {renderMarkdown(result.analysis)}
                         </div>
                     </div>
                 )}
@@ -402,7 +555,7 @@ const CompareModal = ({ onClose, topic, onInsert }) => {
 };
 
 // ─── Citation Modal ────────────────────────────────────────────────────────────
-const CitationModal = ({ onClose, references, onFixRefs }) => {
+const CitationModal = ({ onClose, references, onFixRefs, isDark }) => {
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState(null);
     const [error, setError] = useState(null);
@@ -410,7 +563,7 @@ const CitationModal = ({ onClose, references, onFixRefs }) => {
     const validate = async () => {
         setLoading(true); setError(null);
         try {
-            const res = await fetch('http://localhost:5001/api/citations/validate', {
+            const res = await fetch(`${API_BASE_URL}/citations/validate`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ references })
             });
@@ -421,75 +574,81 @@ const CitationModal = ({ onClose, references, onFixRefs }) => {
         finally { setLoading(false); }
     };
 
+    useEffect(() => {
+        validate();
+    }, []);
+
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-            <div style={{ background: '#111', border: '1px solid #059669', borderRadius: '16px', padding: '24px', maxWidth: '800px', width: '100%', maxHeight: '80vh', overflowY: 'auto', color: 'white' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', color: '#34d399' }}>✔ Citation Validator</h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '20px' }}>×</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(8px)' }}>
+            <div className={`p-8 max-w-[900px] w-full max-h-[85vh] overflow-y-auto rounded-[20px] transition-all ${isDark ? 'bg-[#0a0a0a] border-[1.5px] border-[#38bdf8] text-white shadow-[0_0_40px_rgba(56,189,248,0.15)]' : 'bg-white border border-transparent text-black shadow-[0_0_50px_rgba(56,189,248,0.3)]'}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h3 className={`m-0 text-[18px] font-bold tracking-[0.02em] ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>✔ Citation Validator</h3>
+                    <button onClick={onClose} className={`cursor-pointer p-2 rounded-lg flex items-center justify-center transition-all ${isDark ? 'bg-white/5 text-[#9ca3af] hover:text-white border-2 border-transparent' : 'bg-white text-gray-400 hover:text-black hover:shadow-[0_0_15px_rgba(56,189,248,0.4)] hover:bg-gray-50'}`}>
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {!results && !loading && (
                     <div style={{ textAlign: 'center', padding: '20px' }}>
-                        <p style={{ color: '#9ca3af', marginBottom: '16px', fontSize: '14px' }}>
-                            Validate <strong style={{ color: '#d1d5db' }}>{references.length}</strong> references via CrossRef DOI lookup
+                        <p className={`mb-4 text-[14px] ${isDark ? 'text-[#9ca3af]' : 'text-gray-600'}`}>
+                            Validate <strong className={isDark ? 'text-[#d1d5db]' : 'text-black'}>{references.length}</strong> references via CrossRef DOI lookup
                         </p>
-                        <button onClick={validate} style={{ background: 'linear-gradient(to right,#059669,#0d9488)', border: 'none', color: 'white', padding: '10px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        <button onClick={validate} className={`px-6 py-2.5 rounded-xl text-[14px] font-bold cursor-pointer transition-all ${isDark ? 'bg-gradient-to-r from-[#059669] to-[#0d9488] border-none text-white hover:brightness-110' : 'bg-white border border-emerald-500 text-emerald-600 shadow-[0_0_15px_rgba(52,211,153,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(52,211,153,0.5)]'}`}>
                             Validate All Citations
                         </button>
                     </div>
                 )}
 
                 {loading && (
-                    <div style={{ textAlign: 'center', padding: '30px', color: '#34d399' }}>
+                    <div className={`text-center p-[30px] ${isDark ? 'text-[#34d399]' : 'text-emerald-600'}`}>
                         <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 12px' }} />
                         <p>Checking CrossRef DOI database...</p>
                     </div>
                 )}
 
-                {error && <div style={{ background: '#7f1d1d', borderRadius: '8px', padding: '12px', color: '#fca5a5' }}>❌ {error}</div>}
+                {error && <div className={`rounded-lg p-3 mb-3 ${isDark ? 'bg-[#7f1d1d] text-[#fca5a5]' : 'bg-red-50 border-2 border-red-500 text-red-700 font-bold'}`}>❌ {error}</div>}
 
                 {results && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {results.map((r, i) => (
-                            <div key={i} style={{ background: '#1f1f2e', borderRadius: '8px', padding: '10px 12px', border: `1px solid ${r.status === 'verified' ? '#059669' : '#374151'}` }}>
+                            <div key={i} className={`rounded-lg p-3 ${isDark ? (r.status === 'verified' ? 'bg-[#1f1f2e] border border-[#059669]' : 'bg-[#1f1f2e] border border-[#374151]') : (r.status === 'verified' ? 'bg-emerald-50 border border-emerald-500' : 'bg-white border border-transparent shadow-sm')}`}>
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                                     <span style={{ fontSize: '16px', flexShrink: 0 }}>{r.status === 'verified' ? '✅' : '❌'}</span>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                                            <div className={`text-[11px] ${isDark ? 'text-[#9ca3af]' : 'text-gray-700 font-medium'}`}>
                                                 [{r.index}] Original: {r.original.slice(0, 60)}{r.original.length > 60 ? '...' : ''}
                                             </div>
                                             {r.scholarStatus && (
-                                                <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px', background: r.scholarStatus.includes('Scholar') ? '#065f46' : '#374151', color: '#d1d5db', fontWeight: 'bold' }}>
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${isDark ? (r.scholarStatus.includes('Scholar') ? 'bg-[#065f46] text-[#d1d5db]' : 'bg-[#374151] text-[#d1d5db]') : (r.scholarStatus.includes('Scholar') ? 'bg-emerald-200 text-emerald-800' : 'bg-gray-200 text-gray-800')}`}>
                                                     {r.scholarStatus}
                                                 </span>
                                             )}
                                         </div>
                                         {r.status === 'verified' && (
                                             <>
-                                                <div style={{ fontSize: '12px', color: '#d1d5db', marginBottom: '4px' }}>
+                                                <div className={`text-[12px] mb-1 ${isDark ? 'text-[#d1d5db]' : 'text-black font-semibold'}`}>
                                                     📋 IEEE Format: {r.formatted.slice(0, 100)}{r.formatted.length > 100 ? '...' : ''}
                                                 </div>
                                                 {r.doi && (
-                                                    <a href={r.doi} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#059669', textDecoration: 'none' }}>
+                                                    <a href={r.doi} target="_blank" rel="noreferrer" className={`text-[11px] no-underline font-bold hover:underline ${isDark ? 'text-[#059669]' : 'text-emerald-700'}`}>
                                                         🔗 DOI: {r.doi}
                                                     </a>
                                                 )}
                                             </>
                                         )}
                                         {r.status === 'unverified' && (
-                                            <div style={{ fontSize: '11px', color: '#f87171' }}>Could not verify via CrossRef</div>
+                                            <div className="text-[11px] text-red-500 font-bold">Could not verify via CrossRef</div>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         ))}
                         <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                            <button onClick={validate} style={{ background: 'transparent', border: '1px solid #059669', color: '#34d399', padding: '10px 16px', borderRadius: '10px', fontSize: '12px', cursor: 'pointer', flex: 1 }}>
+                            <button onClick={validate} className={`flex-1 px-4 py-2.5 rounded-xl text-[12px] font-bold cursor-pointer transition-all ${isDark ? 'bg-transparent border border-[#059669] text-[#34d399] hover:bg-[#059669]/10' : 'bg-white border border-transparent text-black shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
                                 🔄 Re-validate
                             </button>
-                            <button onClick={() => onFixRefs(results.filter(r => r.status === 'verified').map(r => ({ old: r.original, new: `[${r.index}] ${r.formatted}` })))} style={{ background: 'linear-gradient(to right, #059669, #0d9488)', border: 'none', color: 'white', padding: '10px 16px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', flex: 1 }}>
+                            <button onClick={() => onFixRefs(results.filter(r => r.status === 'verified').map(r => ({ old: r.original, new: `[${r.index}] ${r.formatted}` })))} className={`flex-1 px-4 py-2.5 rounded-xl text-[12px] font-bold cursor-pointer transition-all ${isDark ? 'bg-gradient-to-r from-[#059669] to-[#0d9488] border-none text-white hover:brightness-110' : 'bg-white border border-emerald-500 text-emerald-600 shadow-[0_0_15px_rgba(52,211,153,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(52,211,153,0.5)]'}`}>
                                 🔧 Fix All References
                             </button>
                         </div>
@@ -505,19 +664,24 @@ const CitationModal = ({ onClose, references, onFixRefs }) => {
 // ═════════════════════════════════════════════════════════════════════════════
 const PaperDrafter = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const paperRef = useRef();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [loading, setLoading] = useState(false);
     const [generatedDraft, setGeneratedDraft] = useState('');
-    const [topic, setTopic] = useState('');
+    const [topic, setTopic] = useState(location.state?.topic || '');
     const [template, setTemplate] = useState('IEEE Journal');
-    const [instructions, setInstructions] = useState('');
+    const [instructions, setInstructions] = useState(location.state?.instructions || '');
     const [showCompare, setShowCompare] = useState(false);
     const [showCitations, setShowCitations] = useState(false);
     const [refiningContributions, setRefiningContributions] = useState(false);
     const [showImproveOptions, setShowImproveOptions] = useState(true);
 
     const user = JSON.parse(localStorage.getItem('user')) || { username: 'Researcher', email: 'user@example.com' };
+
+    const theme = localStorage.getItem('theme') || 'dark';
+    const isDark = theme === 'dark';
+
     const isIEEE = template.startsWith('IEEE');
     const isConference = template.includes('Conference');
 
@@ -526,6 +690,70 @@ const PaperDrafter = () => {
         if (!generatedDraft) return [];
         return generatedDraft.split('\n').filter(l => /^\[\d+\]/.test(l.trim()) || (/^\d+\.\s/.test(l.trim()) && l.trim().length > 40)).map(l => l.trim());
     };
+    // ── Convert Draft to HTML for DocSpace ──────────────────────────────────
+    const convertToHTML = (draft, topic, template) => {
+        const { title, abstractLines, keywordsLines, contributionLines, bodyLines } = parseDocument(draft, topic);
+        const authorName = user.username || 'Researcher';
+        const isIEEE = template.includes('IEEE');
+
+        let html = `<h1 class="paper-title" style="text-align: center; column-span: all; font-size: 24pt; font-weight: normal; margin-bottom: 15pt;">${title}</h1>`;
+
+        html += `
+            <div class="authors-block" style="text-align: center; column-span: all; margin-bottom: 20pt; display: flex; justify-content: center; gap: 40px;">
+                <div style="text-align: center;">
+                    <p style="font-style: italic; margin-bottom: 0;">${authorName}</p>
+                    <p style="font-size: 10pt; margin-top: 0;">Clarion AI System</p>
+                </div>
+                <div style="text-align: center;">
+                    <p style="font-style: italic; margin-bottom: 0;">Co-Author</p>
+                    <p style="font-size: 10pt; margin-top: 0;">Clarion AI System</p>
+                </div>
+            </div>
+            `;
+
+        if (abstractLines.length > 0) {
+            html += `<p class="abstract-section" style="column-span: all; text-align: justify; font-size: 10pt; line-height: 1.3;">
+                <strong><em>Abstract—</em></strong> ${abstractLines.join(' ')}
+            </p>`;
+        }
+
+        if (keywordsLines.length > 0) {
+            html += `<p class="keywords-section" style="column-span: all; text-align: justify; font-size: 10pt; line-height: 1.3; margin-bottom: 12pt;">
+                <strong><em>Index Terms—</em></strong> ${keywordsLines.join(', ')}
+            </p>`;
+        }
+
+        if (contributionLines.length > 0) {
+            html += `<div class="contributions-block" style="column-span: all; margin-bottom: 12pt; font-size: 10pt;">
+                        <strong>Contributions of This Work:</strong>
+                        <ul style="margin-top: 5pt;">
+                            ${contributionLines.map(l => {
+                const clean = cleanMd(l.replace(/^[-*]\s+/, ''));
+                return clean ? `<li style="margin-bottom: 2pt;">${clean}</li>` : '';
+            }).join('')}
+                        </ul>
+                    </div>`;
+        }
+
+        html += `<hr style="column-span: all; border: none; border-top: 1px solid #aaa; margin: 15pt 0;" />`;
+
+        bodyLines.forEach(line => {
+            const t = line.trim();
+            if (!t) return;
+
+            if (isSectionHeader(t)) {
+                html += `<h2 style="text-align: center; text-transform: uppercase; font-size: 11pt; margin-top: 15pt; margin-bottom: 8pt;">${cleanMd(t)}</h2>`;
+            } else if (t.startsWith('### ')) {
+                html += `<h3 style="font-style: italic; font-size: 10pt; margin-top: 10pt; margin-bottom: 4pt;">${cleanMd(t)}</h3>`;
+            } else if (isListItem(t)) {
+                html += `<ul style="margin-bottom: 6pt;"><li>${cleanMd(t.replace(/^[-*]\s+/, ''))}</li></ul>`;
+            } else {
+                html += `<p style="text-indent: 18pt; text-align: justify; margin-bottom: 6pt; font-size: 10pt;">${cleanMd(t)}</p>`;
+            }
+        });
+
+        return html;
+    };
 
     // ── Generate draft ─────────────────────────────────────────────────────
     const handleGenerate = async (e) => {
@@ -533,7 +761,7 @@ const PaperDrafter = () => {
         if (!topic.trim()) return;
         setLoading(true); setGeneratedDraft('');
         try {
-            const response = await fetch('http://localhost:5001/api/draft/generate', {
+            const response = await fetch(`${API_BASE_URL}/draft/generate`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ topic, template, type: isConference ? 'Conference' : 'Journal', additionalInstructions: instructions })
             });
@@ -555,7 +783,7 @@ const PaperDrafter = () => {
     // ── Improve a section (streaming) ──────────────────────────────────────
     const handleSectionImprove = async (sectionText, action, setImproving) => {
         try {
-            const response = await fetch('http://localhost:5001/api/improve', {
+            const response = await fetch(`${API_BASE_URL}/improve`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sectionText, action })
             });
@@ -570,35 +798,39 @@ const PaperDrafter = () => {
             // If it's refining contributions, replace the old contributions section
             if (action === 'refineContributions') {
                 setGeneratedDraft(prev => {
-                    const { contributionLines } = parseDocument(prev, topic);
-                    const oldText = contributionLines.join('\n');
+                    const lines = prev.split('\n');
+                    const startIdx = lines.findIndex(l => isContributionsLine(l));
+                    if (startIdx !== -1) {
+                        // Find the end of keywords/contributions section (next section header or end of list)
+                        let endIdx = lines.findIndex((l, i) => i > startIdx && (isSectionHeader(l) || (isAbstractLine(l) && !isKeywordsLine(l))));
+                        if (endIdx === -1) endIdx = lines.length;
 
-                    if (oldText) {
-                        return prev.replace(oldText, improvedText);
+                        const newLines = [...lines];
+                        newLines.splice(startIdx + 1, endIdx - startIdx - 1, improvedText);
+                        return newLines.join('\n');
                     } else {
-                        const lines = prev.split('\n');
-                        const contributionsHeaderIdx = lines.findIndex(l => isContributionsLine(l));
-                        if (contributionsHeaderIdx !== -1) {
-                            let nextHeaderIdx = lines.findIndex((l, i) => i > contributionsHeaderIdx && (isSectionHeader(l) || isAbstractLine(l) || isKeywordsLine(l)));
-                            if (nextHeaderIdx === -1) nextHeaderIdx = lines.length;
+                        // Injection fallback if no header exists
+                        const abstractIdx = lines.findLastIndex(l => isAbstractLine(l));
+                        if (abstractIdx !== -1) {
+                            let endOfAbstract = lines.findIndex((l, i) => i > abstractIdx && (isKeywordsLine(l) || isSectionHeader(l)));
+                            if (endOfAbstract === -1) endOfAbstract = abstractIdx + 1;
                             const newLines = [...lines];
-                            newLines.splice(contributionsHeaderIdx + 1, nextHeaderIdx - contributionsHeaderIdx - 1, improvedText);
+                            newLines.splice(endOfAbstract, 0, '\n## CONTRIBUTIONS OF THIS WORK:', improvedText);
                             return newLines.join('\n');
-                        } else {
-                            const abstractIdx = lines.findLastIndex(l => isAbstractLine(l));
-                            if (abstractIdx !== -1) {
-                                let endOfAbstract = lines.findIndex((l, i) => i > abstractIdx && (isKeywordsLine(l) || isSectionHeader(l)));
-                                if (endOfAbstract === -1) endOfAbstract = abstractIdx + 1;
-                                const newLines = [...lines];
-                                newLines.splice(endOfAbstract, 0, '\n## Contributions of This Work:', improvedText);
-                                return newLines.join('\n');
-                            }
                         }
                     }
-                    return prev;
+                    return prev + '\n\n## CONTRIBUTIONS OF THIS WORK:\n' + improvedText;
                 });
             } else {
-                setGeneratedDraft(prev => prev.replace(sectionText, improvedText));
+                // For general sections, try to be more precise than a simple string replace
+                setGeneratedDraft(prev => {
+                    // Safety check: if the sectionText exactly exists, use it
+                    if (prev.includes(sectionText)) {
+                        return prev.replace(sectionText, improvedText);
+                    }
+                    // Otherwise, try to replace based on the header if we can find it
+                    return prev.replace(sectionText.trim(), improvedText.trim());
+                });
             }
         } catch (err) {
             alert('Section improvement failed: ' + err.message);
@@ -621,133 +853,211 @@ const PaperDrafter = () => {
         }).from(paperRef.current).save();
     };
 
+    const handleSaveToWorkspace = async () => {
+        if (!generatedDraft) return;
+        setLoading(true);
+
+        try {
+            const { title } = parseDocument(generatedDraft, topic);
+
+            // Generate structured HTML that Quill can understand and render nicely
+            const contentToSave = convertToHTML(generatedDraft, topic, template);
+
+            const response = await fetch(`${API_BASE_URL}/papers/write`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: user.id || user._id,
+                    title: title || topic || 'Untitled Draft',
+                    domain: 'Other',
+                    content: contentToSave,
+                    template: template,
+                    source: 'written'
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to save paper');
+            const data = await response.json();
+
+            alert('Draft converted and sent to DocSpace!');
+            navigate('/docspace', { state: { paperId: data.paper._id } });
+        } catch (err) {
+            alert('Failed to save paper: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleLogout = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); navigate('/login'); };
 
     const renderPaper = () => {
         if (!generatedDraft) return null;
         const { title, abstractLines, keywordsLines, contributionLines, bodyLines } = parseDocument(generatedDraft, topic);
-        const commonProps = { paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove: showImproveOptions ? handleSectionImprove : null };
+        const commonProps = { paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove: showImproveOptions ? handleSectionImprove : null, isDark };
         return isIEEE ? <IEEEPaper {...commonProps} /> : <SpringerPaper {...commonProps} />;
     };
 
     const refs = extractReferences();
 
     return (
-        <div className="flex h-screen bg-[#0a0a0a] text-white font-sans overflow-hidden">
+        <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8fafc] text-black'}`}>
             {/* Sidebar */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-black/90 border-r border-white/5 flex flex-col transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0`}>
-                <div className="p-6 border-b border-white/5">
-                    <div className="flex items-center gap-2 text-purple-400 font-bold text-xl tracking-wide">
-                        <span className="p-1.5 rounded-lg bg-purple-500/10"><LayoutDashboard size={20} /></span>
-                        ResearchPilot
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 ${isSidebarOpen ? 'lg:flex' : 'lg:hidden'} ${isDark ? 'bg-black/80 border-white/5' : 'bg-white/80 border-[#38bdf8]/20'}`}>
+                <div className={`p-8 border-b ${isDark ? 'border-white/5' : 'border-[#38bdf8]/20'}`}>
+                    <div className="flex items-center gap-3 text-[#38bdf8] font-bold text-2xl tracking-tight">
+                        <div className={`p-2 rounded-xl transition-all ${isDark ? 'bg-[#38bdf8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-white shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}>
+                            <LayoutDashboard size={22} className={isDark ? "text-[#38bdf8]" : "text-black"} />
+                        </div>
+                        <span className="font-black tracking-tight text-transparent bg-clip-text" style={{ backgroundImage: isDark ? 'linear-gradient(90deg, #38bdf8, #FFFFFF, #38bdf8)' : 'linear-gradient(90deg, #0284c7, #000000, #0284c7)' }}>CLARION</span>
                     </div>
                 </div>
                 <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-                    <SidebarItem icon={<LayoutDashboard size={18} />} text="Overview" onClick={() => navigate('/home')} />
-                    <SidebarItem icon={<Search size={18} />} text="Discover Papers" onClick={() => navigate('/search')} />
-                    <SidebarItem icon={<FileText size={18} />} text="Doc Space" onClick={() => navigate('/doc-space')} />
-                    <SidebarItem icon={<BookOpen size={18} />} text="Paper Drafting" active />
-                    <SidebarItem icon={<FileText size={18} />} text="Workspace" onClick={() => navigate('/workspace')} />
+                    <SidebarItem icon={<LayoutDashboard size={18} />} text="Home" onClick={() => navigate('/home')} isDark={isDark} />
+                    <SidebarItem icon={<Search size={18} />} text="Discover Papers" onClick={() => navigate('/search')} isDark={isDark} />
+                    <SidebarItem icon={<BookOpen size={18} />} text="Paper Drafting" active isDark={isDark} />
+                    <SidebarItem icon={<Edit3 size={18} />} text="DocSpace Editor" onClick={() => navigate('/docspace')} isDark={isDark} />
+                    <SidebarItem icon={<FileText size={18} />} text="Workspace" onClick={() => navigate('/workspace')} isDark={isDark} />
+                    <SidebarItem icon={<Star size={18} />} text="My Library" onClick={() => navigate('/library')} isDark={isDark} />
+                    <SidebarItem icon={<Bot size={18} />} text="AI Assistant" onClick={() => navigate('/ai')} isDark={isDark} />
+                    <SidebarItem icon={<Compass size={18} />} text="Research Guide" onClick={() => navigate('/guide')} isDark={isDark} />
+                    <SidebarItem icon={<GitPullRequest size={18} />} text="Contributions" onClick={() => navigate('/contributions')} isDark={isDark} />
                 </nav>
-                <div className="p-4 border-t border-white/5">
-                    <button onClick={handleLogout} className="flex items-center gap-3 text-gray-500 hover:text-red-400 transition-colors w-full px-4 py-3 rounded-xl hover:bg-white/5">
-                        <LogOut size={18} /><span className="font-medium text-sm">Sign Out</span>
+                <div className={`p-4 border-t ${isDark ? 'border-white/5' : 'border-[#38bdf8]/20'} space-y-2`}>
+                    <SidebarItem icon={<Settings size={18} />} text="Settings" onClick={() => navigate('/settings')} isDark={isDark} />
+                    <button onClick={handleLogout} className={`flex items-center gap-3 transition-all duration-300 w-full px-4 py-3 rounded-2xl border border-transparent ${isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/5' : 'text-gray-600 hover:bg-red-50 hover:border-transparent hover:text-red-600 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}>
+                        <LogOut size={18} />
+                        <span className="font-medium text-sm tracking-wide">Logout</span>
                     </button>
                 </div>
             </aside>
 
             {/* Main */}
-            <main className="flex-1 flex flex-col relative overflow-hidden">
-                <header className="z-20 h-16 flex items-center justify-between px-8 bg-black/40 border-b border-white/5">
+            <main className={`flex-1 flex flex-col relative overflow-hidden ${isDark ? 'bg-black' : 'bg-[#f8fafc]'}`}>
+                <header className={`z-20 h-16 flex items-center justify-between px-8 border-b ${isDark ? 'bg-black/40 border-white/5 text-white' : 'bg-white/40 border-[#38bdf8]/20 text-black backdrop-blur-md'}`}>
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition lg:hidden"><Menu size={20} /></button>
-                        <h2 className="text-md font-semibold text-gray-300">Advanced Research Drafter</h2>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="text-right hidden sm:block">
-                            <p className="text-xs font-bold text-white">{user.username}</p>
-                            <p className="text-[10px] text-purple-500 font-medium">Academic Mode</p>
-                        </div>
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center font-bold text-white text-sm">
-                            {user.username?.[0]?.toUpperCase() || 'U'}
-                        </div>
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-lg transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-white text-black hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}><Menu size={20} /></button>
+                        <h2 className="text-xl font-semibold">Paper Drafting</h2>
                     </div>
                 </header>
 
                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                     {/* Config Panel */}
-                    <div className="w-full lg:w-[360px] border-r border-white/5 bg-[#0f0f0f] overflow-y-auto p-6 scrollbar-hide">
+                    <div className={`w-full lg:w-[360px] border-r overflow-y-auto p-6 scrollbar-hide ${isDark ? 'border-white/5 bg-[#0f0f0f]' : 'border-[#38bdf8]/20 bg-white'}`}>
                         <div className="space-y-6">
-                            <div className="flex items-center gap-2">
-                                <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 animate-pulse"><Sparkles size={16} /></div>
-                                <h3 className="text-sm font-bold tracking-tight">CRAFT CONFIGURATION</h3>
-                            </div>
+
 
                             <form onSubmit={handleGenerate} className="space-y-5">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Research Topic</label>
-                                    <input type="text" value={topic} onChange={e => setTopic(e.target.value)} placeholder="Enter the core research subject..." className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:border-purple-500/50 focus:bg-purple-500/5 outline-none transition" required />
+                                    <input
+                                        type="text"
+                                        value={topic}
+                                        onChange={e => setTopic(e.target.value)}
+                                        placeholder="Enter the core research subject..."
+                                        className={`w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all ${isDark ? 'bg-black/50 text-white placeholder-gray-500 border border-[#38bdf8]/30 focus:border-[#38bdf8]' : 'bg-white text-black placeholder-gray-400 border border-transparent shadow-[0_0_10px_rgba(56,189,248,0.1)] focus:shadow-[0_0_20px_rgba(56,189,248,0.4)] focus:outline-none'}`}
+                                        style={!isDark ? {} : { border: '1.5px solid rgba(56,189,248,0.25)' }}
+                                        required
+                                    />
                                 </div>
 
+                                {/* ── Template Dropdown ── */}
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Template</label>
+                                    <div className="relative">
+                                        <select
+                                            value={template.split(' ')[0]}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                const type = (val === 'APA' || val === 'Elsevier') ? 'Journal' : (template.includes('Conference') ? 'Conference' : 'Journal');
+                                                setTemplate(`${val} ${type}`);
+                                            }}
+                                            className={`appearance-none w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all cursor-pointer ${isDark ? 'bg-black/50 text-white border border-[#38bdf8]/30 focus:border-[#38bdf8]' : 'bg-white text-black border border-transparent shadow-[0_0_10px_rgba(56,189,248,0.1)] focus:shadow-[0_0_20px_rgba(56,189,248,0.4)]'}`} style={!isDark ? {} : { border: '1.5px solid rgba(56,189,248,0.25)' }}
+                                        >
+                                            <option value="IEEE">IEEE</option>
+                                            <option value="Springer">Springer</option>
+                                            <option value="APA">APA Style</option>
+                                            <option value="ACM">ACM</option>
+                                            <option value="Elsevier">Elsevier</option>
+                                        </select>
+                                        <ChevronDown size={16} className={`absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-gray-400' : 'text-[#0284c7]'}`} />
+                                    </div>
+                                </div>
+
+                                {/* ── Type Row ── */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Type</label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {TEMPLATES.map(t => (
-                                            <button key={t.id} type="button" onClick={() => setTemplate(t.id)}
-                                                className={`py-3 px-2 rounded-xl text-[10px] font-bold border transition-all leading-tight ${template === t.id ? (t.brand === 'IEEE' ? 'bg-blue-700 border-blue-500 text-white' : 'bg-red-700 border-red-500 text-white') : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`}>
-                                                <div className="text-[8px] opacity-60 font-black tracking-widest">{t.brand}</div>
-                                                {t.id.replace(`${t.brand} `, '')}
-                                            </button>
-                                        ))}
+                                        {['Journal', 'Conference'].map(label => {
+                                            const brand = template.split(' ')[0];
+                                            const active = template.includes(label);
+                                            const isDisabled = label === 'Conference' && (brand === 'APA' || brand === 'Elsevier');
+
+                                            const activeClass = active ? (isDark ? 'bg-black/50 border border-[#38bdf8] text-white' : 'bg-white border-transparent text-black shadow-[0_0_20px_rgba(56,189,248,0.4)]') : (isDark ? 'bg-black/50 border border-[#38bdf8]/30 hover:border-[#38bdf8]/60 text-gray-400' : 'bg-white border-transparent text-gray-500 shadow-[0_0_10px_rgba(56,189,248,0.1)] hover:shadow-[0_0_15px_rgba(56,189,248,0.2)]');
+
+                                            const disabledClass = isDisabled ? 'opacity-30 !cursor-not-allowed grayscale pointer-events-none' : 'cursor-pointer';
+
+                                            return (
+                                                <button
+                                                    key={label}
+                                                    type="button"
+                                                    disabled={isDisabled}
+                                                    onClick={() => setTemplate(`${brand} ${label}`)}
+                                                    className={`relative flex flex-col items-center justify-center gap-1 py-3.5 px-3 rounded-xl transition-all duration-200 border ${activeClass} ${disabledClass}`}>
+                                                    <span className="text-[11px] font-bold">{label}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Additional Instructions</label>
-                                    <textarea value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="e.g. Focus on experimental results..." rows="3" className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:border-purple-500/50 outline-none transition resize-none" />
+                                    <textarea
+                                        value={instructions}
+                                        onChange={e => setInstructions(e.target.value)}
+                                        placeholder="e.g. Focus on experimental results..."
+                                        rows="3"
+                                        className={`w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all resize-none ${isDark ? 'bg-black/50 text-white placeholder-gray-500 border border-[#38bdf8]/30 focus:border-[#38bdf8]' : 'bg-white text-black placeholder-gray-400 border border-transparent shadow-[0_0_10px_rgba(56,189,248,0.1)] focus:shadow-[0_0_20px_rgba(56,189,248,0.4)] focus:outline-none'}`}
+                                        style={!isDark ? {} : { border: '1.5px solid rgba(56,189,248,0.25)' }}
+                                    />
                                 </div>
 
-                                <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white py-4 rounded-xl text-sm font-black tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-purple-900/30 disabled:opacity-50 transition-all hover:scale-[1.02]">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:cursor-not-allowed transition-all duration-300 ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.25)] hover:shadow-[0_0_22px_rgba(56,189,248,0.55)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'}`}
+                                >
                                     {loading ? <><Loader2 className="animate-spin" size={18} /> GENERATING...</> : <><Sparkles size={18} /> SYNTHESIZE DRAFT</>}
                                 </button>
                             </form>
 
                             {/* Action buttons after generation */}
                             {generatedDraft && (
-                                <div className="space-y-2 pt-2 border-t border-white/5">
-                                    <button onClick={handleRefineContributions} disabled={refiningContributions} className="w-full flex items-center gap-2 py-3 px-4 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 hover:bg-orange-500/20 text-xs font-bold transition-all disabled:opacity-40">
+                                <div className={`space-y-3 pt-4 border-t ${isDark ? 'border-white/5' : 'border-[#38bdf8]/20'}`}>
+                                    <button onClick={handleRefineContributions} disabled={refiningContributions} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 disabled:cursor-not-allowed ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.15)] hover:shadow-[0_0_18px_rgba(56,189,248,0.4)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
                                         {refiningContributions ? <Loader2 size={14} className="animate-spin" /> : '⚡ Refine Contributions'}
                                     </button>
-                                    <button onClick={() => setShowCompare(true)} className="w-full flex items-center gap-2 py-3 px-4 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 text-xs font-bold transition-all">
+                                    <button onClick={() => setShowCompare(true)} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.15)] hover:shadow-[0_0_18px_rgba(56,189,248,0.4)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
                                         🔍 Compare with Existing Work
                                     </button>
-                                    <button onClick={() => setShowCitations(true)} disabled={refs.length === 0} className="w-full flex items-center gap-2 py-3 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-xs font-bold transition-all disabled:opacity-40">
+                                    <button onClick={() => setShowCitations(true)} disabled={refs.length === 0} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 disabled:cursor-not-allowed ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.15)] hover:shadow-[0_0_18px_rgba(56,189,248,0.4)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
                                         ✔ Validate Citations {refs.length > 0 ? `(${refs.length})` : '(none found)'}
                                     </button>
-                                    <button onClick={handleDownloadPDF} className="w-full flex items-center gap-2 py-3 px-4 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 hover:bg-teal-500/20 text-xs font-bold transition-all">
+                                    <button onClick={handleDownloadPDF} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.15)] hover:shadow-[0_0_18px_rgba(56,189,248,0.4)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
                                         <Printer size={14} /> PDF Export
                                     </button>
-                                    <div className="flex items-center justify-between px-2 pt-2">
-                                        <span className="text-[10px] font-bold text-gray-500 uppercase">Improve Options</span>
-                                        <button onClick={() => setShowImproveOptions(!showImproveOptions)} className={`w-10 h-5 rounded-full transition-colors relative ${showImproveOptions ? 'bg-purple-600' : 'bg-gray-700'}`}>
-                                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${showImproveOptions ? 'left-6' : 'left-1'}`} />
-                                        </button>
-                                    </div>
+                                    <button onClick={handleSaveToWorkspace} disabled={loading} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 disabled:cursor-not-allowed ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.2)] hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'}`}>
+                                        {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save to Workspace
+                                    </button>
                                 </div>
                             )}
 
-                            <div className="bg-purple-500/5 border border-purple-500/10 p-4 rounded-2xl">
-                                <div className="flex gap-2 items-center mb-2">
-                                    <CheckCircle2 className="text-purple-500" size={14} />
-                                    <span className="text-[10px] font-black text-purple-400 uppercase tracking-wider">Engine: Ready</span>
-                                </div>
-                                <p className="text-[10px] text-gray-500 leading-relaxed">Powered by Gemini 2.5 Flash · <span className="text-purple-400">Hover any section to improve it</span></p>
-                            </div>
+
                         </div>
                     </div>
 
                     {/* Paper Preview */}
-                    <div className="flex-1 bg-[#121212] overflow-y-auto p-4 md:p-12 scrollbar-hide">
+                    <div className={`flex-1 overflow-y-auto p-4 md:p-12 scrollbar-hide ${isDark ? 'bg-[#121212]' : 'bg-[#e2e8f0]'}`}>
                         <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between">
                             <div>
                                 <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">Document Workbench</h4>
@@ -755,10 +1065,10 @@ const PaperDrafter = () => {
                                     <p className="text-[10px] text-gray-400">{template} · 1:1 Preview</p>
                                     {loading && generatedDraft && (
                                         <div className="flex items-center gap-1">
-                                            <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce" />
-                                            <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.2s]" />
-                                            <div className="w-1 h-1 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.4s]" />
-                                            <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest">Streaming</span>
+                                            <div className="w-1 h-1 bg-[#38bdf8] rounded-full animate-bounce" />
+                                            <div className="w-1 h-1 bg-[#38bdf8] rounded-full animate-bounce [animation-delay:-0.2s]" />
+                                            <div className="w-1 h-1 bg-[#38bdf8] rounded-full animate-bounce [animation-delay:-0.4s]" />
+                                            <span className="text-[8px] text-[#38bdf8] font-bold uppercase tracking-widest">Streaming</span>
                                         </div>
                                     )}
                                 </div>
@@ -769,23 +1079,23 @@ const PaperDrafter = () => {
                         </div>
 
                         {!generatedDraft && !loading && (
-                            <div className="max-w-[8.5in] aspect-[8.5/11] mx-auto bg-white/5 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center text-center p-12 hover:border-white/20 transition-colors">
-                                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-                                    <FileType size={32} className="opacity-20" />
+                            <div className={`max-w-[8.5in] aspect-[8.5/11] mx-auto rounded-3xl flex flex-col items-center justify-center text-center p-12 transition-colors ${isDark ? 'bg-white/5 border border-dashed border-white/10 hover:border-white/20' : 'bg-white border border-dashed border-gray-200 hover:border-[#38bdf8] hover:shadow-[0_0_30px_rgba(56,189,248,0.25)] shadow-sm'}`}>
+                                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                    <FileType size={32} className={`${isDark ? 'opacity-20' : 'text-gray-400'}`} />
                                 </div>
-                                <h4 className="text-lg font-bold text-gray-400 mb-2">No Active Manuscript</h4>
-                                <p className="text-sm text-gray-500 max-w-sm">Configure your research scope and click Synthesize Draft.</p>
+                                <h4 className={`text-lg font-bold mb-2 ${isDark ? 'text-gray-400' : 'text-gray-800'}`}>No Active Manuscript</h4>
+                                <p className={`text-sm max-w-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Configure your research scope and click Synthesize Draft.</p>
                             </div>
                         )}
 
                         {loading && !generatedDraft && (
-                            <div className="max-w-[8.5in] aspect-[8.5/11] mx-auto bg-white/5 border border-white/10 rounded-3xl p-12 flex flex-col items-center justify-center text-center">
+                            <div className={`max-w-[8.5in] aspect-[8.5/11] mx-auto rounded-3xl p-12 flex flex-col items-center justify-center text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-transparent shadow-[0_0_40px_rgba(56,189,248,0.2)]'}`}>
                                 <div className="relative mb-8">
-                                    <div className="absolute inset-0 bg-purple-500/20 blur-3xl rounded-full scale-150 animate-pulse" />
-                                    <div className="w-24 h-24 rounded-full border-4 border-purple-500/20 border-t-purple-500 animate-spin relative z-10" />
+                                    <div className="absolute inset-0 bg-[#38bdf8]/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                                    <div className="w-24 h-24 rounded-full border-4 border-[#38bdf8]/20 border-t-[#38bdf8] animate-spin relative z-10" />
                                 </div>
-                                <h4 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent mb-3">SYNTHESIZING MANUSCRIPT</h4>
-                                <p className="text-sm text-gray-500 max-w-xs">Architecting the {template} structure...</p>
+                                <h4 className="text-xl font-bold bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent mb-3">SYNTHESIZING MANUSCRIPT</h4>
+                                <p className={`text-sm max-w-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Architecting the {template} structure...</p>
                             </div>
                         )}
 
@@ -799,7 +1109,7 @@ const PaperDrafter = () => {
             </main>
 
             {/* Modals */}
-            {showCompare && <CompareModal onClose={() => setShowCompare(false)} topic={topic} onInsert={(content) => {
+            {showCompare && <CompareModal onClose={() => setShowCompare(false)} topic={topic} isDark={isDark} onInsert={(content) => {
                 setGeneratedDraft(prev => {
                     const lines = prev.split('\n');
                     const relatedWorkIdx = lines.findIndex(l => /related work/i.test(l));
@@ -812,7 +1122,7 @@ const PaperDrafter = () => {
                 });
                 setShowCompare(false);
             }} />}
-            {showCitations && <CitationModal onClose={() => setShowCitations(false)} references={refs} onFixRefs={(fixes) => {
+            {showCitations && <CitationModal onClose={() => setShowCitations(false)} references={refs} isDark={isDark} onFixRefs={(fixes) => {
                 setGeneratedDraft(prev => {
                     let newText = prev;
                     fixes.forEach(f => {
@@ -826,11 +1136,19 @@ const PaperDrafter = () => {
     );
 };
 
-const SidebarItem = ({ icon, text, active, onClick }) => (
-    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-300 group ${active ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-900/40' : 'text-gray-500 hover:text-white hover:bg-white/5'}`}>
-        <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
-        <span className={`text-xs tracking-wide ${active ? 'font-black' : 'font-bold'}`}>{text.toUpperCase()}</span>
+const SidebarItem = ({ icon, text, active, onClick, isDark }) => (
+    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 group ${active
+        ? isDark
+            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+            : 'bg-[#e0f2fe] text-[#0284c7] border border-[#38bdf8]'
+        : isDark
+            ? 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent'
+            : 'bg-transparent text-gray-600 border border-transparent hover:bg-white hover:border-[#38bdf8] hover:text-black hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'
+        }`}>
+        <div className={`transition-transform ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
+        <span className="font-medium text-sm tracking-wide">{text}</span>
     </div>
 );
+
 
 export default PaperDrafter;

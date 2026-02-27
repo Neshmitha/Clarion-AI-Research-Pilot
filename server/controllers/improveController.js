@@ -1,6 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const { runAIStreamWithPool } = require('../services/aiManager');
 
 const ACTION_PROMPTS = {
     clarity: 'Rewrite this section to improve clarity and readability. Keep the same technical content but use clearer language, better sentence structure, and smoother transitions.',
@@ -30,11 +28,13 @@ RULES:
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.setHeader('Transfer-Encoding', 'chunked');
 
-        const result = await model.generateContentStream(prompt);
-        for await (const chunk of result.stream) {
-            const text = chunk.text();
-            if (text) res.write(text);
+        try {
+            await runAIStreamWithPool(prompt, (chunk) => res.write(chunk));
+        } catch (poolError) {
+            console.error('[AI POOL] Improvement Stream Failed:', poolError.message);
+            res.write('I encountered errors with all available AI services. Please try again later.');
         }
+
         res.end();
 
     } catch (err) {

@@ -14,7 +14,7 @@ exports.validateCitations = async (req, res) => {
             try {
                 const response = await axios.get(
                     `https://api.crossref.org/works?query=${encodeURIComponent(query)}&rows=1&select=DOI,title,author,published,container-title`,
-                    { timeout: 8000, headers: { 'User-Agent': 'ResearchPilot/1.0 (research-tool)' } }
+                    { timeout: 8000, headers: { 'User-Agent': 'Clarion/1.0 (research-tool)' } }
                 );
                 const item = response.data?.message?.items?.[0];
                 if (!item) return { index: idx + 1, original: ref, status: 'unverified', doi: null, formatted: ref };

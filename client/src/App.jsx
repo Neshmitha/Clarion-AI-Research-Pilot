@@ -5,12 +5,19 @@ import Register from './pages/Register';
 import Home from './pages/Home';
 import Workspace from './pages/Workspace';
 import SearchPapers from './pages/SearchPapers';
-import DocSpace from './pages/DocSpace';
+
 import PaperDrafter from './pages/PaperDrafter';
+import Library from './pages/Library';
+import Settings from './pages/Settings';
 import Chatbot from './components/Chatbot';
-
+import DocSpace from './pages/DocSpace';
+import Guide from './pages/Guide';
+import Landing from './pages/Landing';
+import AiAssistant from './pages/AiAssistant';
+import Contributions from './pages/Contributions';
+import NewContribution from './pages/NewContribution';
+import ContributionDetail from './pages/ContributionDetail';
 const ProtectedRoute = ({ children }) => {
-
   const token = localStorage.getItem('token');
   if (!token) {
     return <Navigate to="/" replace />;
@@ -39,26 +46,59 @@ function App() {
             <SearchPapers />
           </ProtectedRoute>
         } />
-        <Route path="/doc-space" element={
+        <Route path="/guide" element={
           <ProtectedRoute>
-            <DocSpace />
+            <Guide />
           </ProtectedRoute>
         } />
+
         <Route path="/draft" element={
           <ProtectedRoute>
             <PaperDrafter />
           </ProtectedRoute>
         } />
-        <Route path="/doc-space/:id" element={
+        <Route path="/docspace" element={
           <ProtectedRoute>
             <DocSpace />
           </ProtectedRoute>
         } />
-        <Route path="/" element={<Login />} />
+        <Route path="/library" element={
+          <ProtectedRoute>
+            <Library />
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
+        <Route path="/ai" element={
+          <ProtectedRoute>
+            <AiAssistant />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/contributions" element={
+          <ProtectedRoute>
+            <Contributions />
+          </ProtectedRoute>
+        } />
+        <Route path="/contributions/new" element={
+          <ProtectedRoute>
+            <NewContribution />
+          </ProtectedRoute>
+        } />
+        <Route path="/contributions/:id" element={
+          <ProtectedRoute>
+            <ContributionDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/" element={<Landing />} />        <Route path="/landing" element={<Landing />} />
+        <Route path="/signin" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <Chatbot />
     </Router>
-
   );
 }
 

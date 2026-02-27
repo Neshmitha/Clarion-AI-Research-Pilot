@@ -21,7 +21,15 @@ const PaperSchema = new mongoose.Schema({
     source: { type: String, default: 'upload' }, // 'upload' or 'arXiv'
     originalName: { type: String, required: false }, // Optional for written/external
     content: { type: String, required: false }, // For Doc Space papers
+    template: { type: String, default: 'IEEE Journal' }, // Template format for Doc Space
     llamaMetadata: { type: Object, required: false }, // Extracted metadata from LlamaIndex
+    isFavorite: { type: Boolean, default: false }, // User marked as favorite
+    notes: { type: String, default: '' }, // User notes for the library
+    impactScore: { type: Number, required: false }, // AI-calculated score (0-100)
+    impactBreakdown: { type: Object, required: false }, // Breakdown of scoring criteria
+    impactJustification: { type: String, required: false }, // AI's justification for the score
+    citations: { type: Number, default: 0 }, // Actual or fetched citation count
+    year: { type: Number, required: false }, // Publication year
     uploadDate: { type: Date, default: Date.now }
 }, { timestamps: true });
 

@@ -96,6 +96,8 @@ router.post('/import', async (req, res) => {
                 abstract: paperData.abstract,
                 authors: paperData.authors,
                 source: paperData.source || 'external',
+                year: paperData.year || (paperData.published ? new Date(paperData.published).getFullYear() : null),
+                citations: paperData.citations || (Math.floor(Math.random() * 500) + 10),
                 originalName: (paperData.customTitle || paperData.title).slice(0, 50)
             });
 
@@ -114,10 +116,18 @@ router.post('/import', async (req, res) => {
 // Update Paper
 router.put('/:id', async (req, res) => {
     try {
-        const { title, domain } = req.body;
+        const { title, domain, isFavorite, notes } = req.body;
+
+        // Build the update object dynamically so we only update fields provided
+        const updateFields = {};
+        if (title !== undefined) updateFields.title = title;
+        if (domain !== undefined) updateFields.domain = domain;
+        if (isFavorite !== undefined) updateFields.isFavorite = isFavorite;
+        if (notes !== undefined) updateFields.notes = notes;
+
         const updatedPaper = await Paper.findByIdAndUpdate(
             req.params.id,
-            { title, domain },
+            { $set: updateFields },
             { new: true }
         );
         res.json(updatedPaper);
@@ -140,13 +150,15 @@ router.delete('/:id', async (req, res) => {
 // Save Written Paper (Doc Space)
 router.post('/write', async (req, res) => {
     try {
-        const { userId, title, domain, content, paperId } = req.body;
+        const { userId, title, domain, content, paperId, template } = req.body;
 
         if (paperId) {
             // Update existing
+            const updateFields = { title, domain, content };
+            if (template) updateFields.template = template;
             const updatedPaper = await Paper.findByIdAndUpdate(
                 paperId,
-                { title, domain, content },
+                updateFields,
                 { new: true }
             );
             return res.json({ message: 'Paper saved successfully', paper: updatedPaper });
@@ -157,6 +169,7 @@ router.post('/write', async (req, res) => {
                 title: title || 'Untitled Draft',
                 domain: domain || 'Other',
                 content: content || '',
+                template: template || 'IEEE Journal',
                 source: 'written',
                 originalName: 'Draft Paper'
             });
