@@ -91,7 +91,6 @@ JWT_SECRET=your_jwt_secret
 GROQ_API_KEY=your_groq_api_key
 GEMINI_API_KEY=your_gemini_api_key
 LLAMA_CLOUD_API_KEY=your_llama_key
-LLAMA_DEPLOYMENT_URL=your_llama_url
 ```
 
 Ensure all environment variables are properly configured before running the application.
