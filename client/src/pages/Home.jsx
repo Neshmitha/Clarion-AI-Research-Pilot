@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UploadModal from '../components/UploadModal';
 import AppSidebar from '../components/AppSidebar';
-import { Search, Edit3, Compass, Bot, FileText, BookOpen } from 'lucide-react';
+import { Search, Edit3, Compass, Bot, FileText, BookOpen, Upload } from 'lucide-react';
 
 // ── Sparkling particle background ──────────────────────────────────────────
 const SparkleCanvas = () => {
