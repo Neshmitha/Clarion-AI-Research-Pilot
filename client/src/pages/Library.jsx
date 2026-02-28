@@ -137,7 +137,7 @@ const Library = () => {
     return (
         <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-[#050505] text-white' : 'bg-[#f8fafc] text-black'}`}>
             {/* Sidebar */}
-            <AppSidebar isOpen={isSidebarOpen} activePage="library" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
+            <AppSidebar isOpen={isSidebarOpen} activePage="library" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main Section */}
             <main className="flex-1 flex flex-col relative overflow-hidden">

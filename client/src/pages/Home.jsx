@@ -76,7 +76,7 @@ const Home = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'text-white' : 'text-black'}`} style={{ background: isDark ? '#000000' : '#ffffff' }}>
-            <AppSidebar isOpen={isSidebarOpen} activePage="home" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
+            <AppSidebar isOpen={isSidebarOpen} activePage="home" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col relative">

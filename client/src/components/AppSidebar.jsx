@@ -41,8 +41,9 @@ const Tooltip = ({ text, isDark }) => (
  * @param {string}   activePage  - ID of the active nav item (e.g. 'workspace')
  * @param {boolean}  isDark      - Theme flag
  * @param {Function} onClose     - Called when mobile backdrop is clicked
+ * @param {Function} onToggle    - Called to toggle sidebar open/closed
  */
-const AppSidebar = ({ isOpen, activePage, isDark, onClose }) => {
+const AppSidebar = ({ isOpen, activePage, isDark, onClose, onToggle }) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -77,14 +78,20 @@ const AppSidebar = ({ isOpen, activePage, isDark, onClose }) => {
                 lg:relative lg:inset-y-auto lg:left-auto
             `}>
 
-                {/* ── Logo ── */}
-                <div className={`
-                    flex items-center border-b h-20 px-4 flex-shrink-0
-                    ${isDark ? 'border-white/5' : 'border-black/5'}
-                    ${isOpen ? 'gap-3' : 'justify-center'}
-                `}>
+                {/* ── Logo (clickable — toggles sidebar) ── */}
+                <div
+                    onClick={onToggle}
+                    className={`
+                        flex items-center border-b h-20 px-4 flex-shrink-0 cursor-pointer
+                        transition-all duration-200 group
+                        ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-black/5 hover:bg-black/[0.03]'}
+                        ${isOpen ? 'gap-3' : 'justify-center'}
+                    `}
+                    title={isOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+                >
                     <div className={`
-                        p-2 rounded-xl flex-shrink-0 transition-all
+                        p-2 rounded-xl flex-shrink-0 transition-all duration-200
+                        group-hover:shadow-[0_0_18px_rgba(56,189,248,0.45)]
                         ${isDark
                             ? 'bg-[#38bdf8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]'
                             : 'bg-white shadow-[0_0_15px_rgba(56,189,248,0.3)]'}

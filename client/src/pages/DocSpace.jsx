@@ -296,7 +296,7 @@ const DocSpace = () => {
                 .docspace-editor .ql-editor p { margin-bottom: 0.5rem; }
             `}</style>
 
-            <AppSidebar isOpen={isSidebarOpen} activePage="docspace" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
+            <AppSidebar isOpen={isSidebarOpen} activePage="docspace" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main Content Area */}
             <main className={`flex-1 flex flex-col relative overflow-hidden ${isDark ? 'bg-black' : 'bg-[#f8fafc]'}`}>

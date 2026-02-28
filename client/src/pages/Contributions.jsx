@@ -91,7 +91,7 @@ const Contributions = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-[#000000] text-white' : 'bg-[#f8fafc] text-black'}`}>
-            <AppSidebar isOpen={isSidebarOpen} activePage="contributions" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
+            <AppSidebar isOpen={isSidebarOpen} activePage="contributions" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main Content */}
             <main className={`flex-1 flex flex-col relative overflow-hidden ${isDark ? 'bg-black' : 'bg-[#fcfcfc]'}`}>

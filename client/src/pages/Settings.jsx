@@ -148,7 +148,7 @@ const Settings = () => {
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-all ${isDark ? 'bg-[#000000] text-white' : 'bg-[#ffffff] text-black'}`}>
             {/* Sidebar */}
-            <AppSidebar isOpen={isSidebarOpen} activePage="settings" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
+            <AppSidebar isOpen={isSidebarOpen} activePage="settings" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col relative overflow-hidden">

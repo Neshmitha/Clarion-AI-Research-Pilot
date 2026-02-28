@@ -81,7 +81,7 @@ const SearchPapers = () => {
     return (
         <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-neutral-900 text-white' : 'bg-[#ffffff] text-black'}`}>
             {/* Sidebar code remains same... */}
-            <AppSidebar isOpen={isSidebarOpen} activePage="search" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
+            <AppSidebar isOpen={isSidebarOpen} activePage="search" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main Content */}
             <main className={`flex-1 flex flex-col relative ${isDark ? 'bg-[#121212]' : 'bg-[#f8fafc]'}`}>

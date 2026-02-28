@@ -163,7 +163,7 @@ const AiAssistant = () => {
     return (
         <div className={`flex h-screen font-sans overflow-hidden transition-all ${isDark ? 'bg-neutral-900 text-white' : 'bg-[#f8fafc] text-black'}`}>
             {/* Sidebar */}
-            <AppSidebar isOpen={isSidebarOpen} activePage="ai" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
+            <AppSidebar isOpen={isSidebarOpen} activePage="ai" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main Content (AI Assistant Interface) */}
             <main className={`flex-1 flex flex-col relative ${isDark ? 'bg-[#121212]' : 'bg-transparent'}`}>

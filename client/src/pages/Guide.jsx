@@ -285,7 +285,7 @@ const Guide = () => {
         <div className={`flex h-screen overflow-hidden transition-all ${isDark ? "text-white bg-[#000]" : "text-black bg-[#f8fafc]"}`} style={{ fontFamily: "'Inter','Segoe UI',sans-serif" }}>
 
             {/* Sidebar */}
-            <AppSidebar isOpen={isSidebarOpen} activePage="guide" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
+            <AppSidebar isOpen={isSidebarOpen} activePage="guide" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
             {/* Main */}
             <div className="flex-1 flex flex-col overflow-hidden relative">
