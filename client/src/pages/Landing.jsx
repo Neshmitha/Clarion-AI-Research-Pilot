@@ -12,26 +12,28 @@ const Landing = () => {
     return (
         <div className="w-full bg-[#050505] text-white selection:bg-blue-500/30">
             {/* Hero Section */}
-            <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-                {/* Background Video */}
+            <section className="relative h-screen w-full overflow-hidden">
+                {/* Background Video — fills screen on all devices */}
                 <div className="absolute inset-0 z-0">
                     <video
                         autoPlay
                         muted
                         loop
                         playsInline
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover object-center"
                     >
                         <source src="/Write_the_name_202602251046_6f9k5.mp4" type="video/mp4" />
                     </video>
+                    {/* Subtle dark overlay on mobile for button readability */}
+                    <div className="absolute inset-0 bg-black/10 md:bg-transparent pointer-events-none" />
                 </div>
 
-                {/* Sparkling Blue Button Case Below Center */}
+                {/* Button — always anchored to bottom center, never pushed off-screen */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.5 }}
-                    className="relative z-10 mt-[32rem]"
+                    className="absolute bottom-10 sm:bottom-14 left-1/2 -translate-x-1/2 z-10 w-full flex justify-center px-4"
                 >
                     <div className="relative group">
                         <motion.div
@@ -55,6 +57,7 @@ const Landing = () => {
                     </div>
                 </motion.div>
             </section>
+
 
             {/* Key Features Section */}
             <section className="py-24 px-8 max-w-7xl mx-auto">
