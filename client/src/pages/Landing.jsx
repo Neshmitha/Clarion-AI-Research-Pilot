@@ -33,7 +33,7 @@ const Landing = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.5 }}
-                    className="absolute bottom-10 sm:bottom-14 left-1/2 -translate-x-1/2 z-10 w-full flex justify-center px-4"
+                    className="absolute inset-0 flex items-center justify-center z-10 px-4"
                 >
                     <div className="relative group">
                         <motion.div
