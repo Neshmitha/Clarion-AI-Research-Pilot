@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import UploadModal from '../components/UploadModal';
 import AppSidebar from '../components/AppSidebar';
 import HamburgerButton from '../components/HamburgerButton';
+import { Search, Edit3, Compass, Bot, FileText, BookOpen } from 'lucide-react';
 
 // ── Sparkling particle background ──────────────────────────────────────────
 const SparkleCanvas = () => {
