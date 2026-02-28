@@ -24,16 +24,14 @@ const Landing = () => {
                     >
                         <source src="/Write_the_name_202602251046_6f9k5.mp4" type="video/mp4" />
                     </video>
-                    {/* Subtle dark overlay on mobile for button readability */}
-                    <div className="absolute inset-0 bg-black/10 md:bg-transparent pointer-events-none" />
                 </div>
 
-                {/* Button — always anchored to bottom center, never pushed off-screen */}
+                {/* Button — centered horizontally at a specific height below the video text */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.5 }}
-                    className="absolute top-[70%] left-1/2 -translate-x-1/2 z-10 w-full flex justify-center px-4"
+                    className="absolute top-[62%] left-1/2 -translate-x-1/2 z-10"
                 >
                     <div className="relative group">
                         <motion.div
