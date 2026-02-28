@@ -1,5 +1,4 @@
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -200,7 +199,7 @@ const ContributionDetail = () => {
 
                 <header className={`h-20 flex-shrink-0 flex items-center px-8 justify-between border-b ${isDark ? 'border-white/5 bg-black/40' : 'border-[#38bdf8]/30 bg-white/60 shadow-[0_4px_30px_rgba(56,189,248,0.05)]'} backdrop-blur-md z-50`}>
                     <div className="flex items-center gap-6">
-                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                        
                         <button onClick={() => navigate('/contributions')} className={`p-2 rounded-xl transition ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-black/5 text-gray-600'}`}>
                             <ArrowLeft size={20} />
                         </button>

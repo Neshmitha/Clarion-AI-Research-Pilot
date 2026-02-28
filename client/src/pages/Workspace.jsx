@@ -6,7 +6,6 @@ import { Plus, File, Trash2, Edit2, Bot, Star, ChevronDown } from 'lucide-react'
 import UploadModal from '../components/UploadModal';
 import EditPaperModal from '../components/EditPaperModal';
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 
 const Workspace = () => {
     const navigate = useNavigate();
@@ -84,7 +83,7 @@ const Workspace = () => {
                 {/* Header */}
                 <header className={`z-10 h-20 flex items-center justify-between px-8 border-b backdrop-blur-md ${isDark ? 'bg-black/40 border-white/5' : 'bg-white/40 border-transparent/10'}`}>
                     <div className="flex items-center gap-4">
-                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                        
                         <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-200' : 'text-black'}`}>Workspace</h2>
                     </div>
                     <div className="flex items-center gap-4">

@@ -1,5 +1,4 @@
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -158,7 +157,7 @@ const Settings = () => {
                 <div className="flex-1 overflow-y-auto px-8 py-10 scrollbar-hide z-10">
                     <div className="max-w-3xl mx-auto">
                         <header className="mb-12 flex items-center gap-4">
-                            <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                            
                             <h2 className={`text-2xl font-black tracking-tight ${isDark ? 'text-white' : 'text-black'}`}>Settings</h2>
                         </header>
 

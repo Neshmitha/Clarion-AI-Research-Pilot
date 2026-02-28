@@ -1,5 +1,4 @@
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -145,7 +144,7 @@ const Library = () => {
                 <div className="px-8 pt-8 pb-4 z-20">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
                         <div className="flex items-center gap-4">
-                            <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                            
                             <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-200' : 'text-black'}`}>My Library</h2>
                         </div>
 

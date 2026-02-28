@@ -1,5 +1,4 @@
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -88,7 +87,7 @@ const SearchPapers = () => {
                 {/* Header ... */}
                 <header className={`z-10 h-20 flex items-center justify-between px-8 border-b ${isDark ? 'border-white/5 bg-black/20 text-white' : 'border-black/5 bg-white/40 text-black'} backdrop-blur-md`}>
                     <div className="flex items-center gap-4">
-                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                        
                         <h2 className="text-xl font-semibold">Discover Papers</h2>
                     </div>
                 </header>

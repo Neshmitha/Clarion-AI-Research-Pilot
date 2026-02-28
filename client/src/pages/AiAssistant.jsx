@@ -1,5 +1,4 @@
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -169,7 +168,7 @@ const AiAssistant = () => {
             <main className={`flex-1 flex flex-col relative ${isDark ? 'bg-[#121212]' : 'bg-transparent'}`}>
                 <header className={`z-10 h-20 flex items-center justify-between px-8 border-b backdrop-blur-md ${isDark ? 'border-white/5 bg-black/20' : 'border-black/5 bg-white/40'}`}>
                     <div className="flex items-center gap-4">
-                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                        
                         <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-200' : 'text-black'}`}>AI Assistant</h2>
                     </div>
                 </header>

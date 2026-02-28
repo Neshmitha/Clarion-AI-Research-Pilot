@@ -7,7 +7,6 @@ import {
     GitPullRequest, CheckCircle2, Filter, ArrowLeft, Trash2, Search
 } from 'lucide-react';
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 
 const Contributions = () => {
     const navigate = useNavigate();
@@ -99,7 +98,7 @@ const Contributions = () => {
 
                 <header className={`h-20 flex items-center justify-between px-8 border-b ${isDark ? 'border-white/5 bg-black/40 text-white' : 'border-[#38bdf8]/30 bg-white/60 text-black'} backdrop-blur-md z-10 shadow-[0_4px_30px_rgba(56,189,248,0.05)]`}>
                     <div className="flex items-center gap-4">
-                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                        
                         <h2 className="text-xl font-bold flex items-center gap-2">
                             <GitPullRequest size={20} className="text-[#38bdf8]" />
                             {activeTab === 'my_contributions' ? 'My Contributions' : 'Community Contributions'}

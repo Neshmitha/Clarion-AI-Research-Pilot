@@ -10,7 +10,6 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import API_BASE_URL from '../config';
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN DOCSPACE COMPONENT — Google Docs-style Editor
@@ -302,7 +301,7 @@ const DocSpace = () => {
             <main className={`flex-1 flex flex-col relative overflow-hidden ${isDark ? 'bg-black' : 'bg-[#f8fafc]'}`}>
                 <div className={`z-20 h-16 flex items-center justify-between px-8 border-b backdrop-blur-md ${isDark ? 'bg-black/40 border-white/5 text-white' : 'bg-white/40 border-black/5 text-black'}`}>
                     <div className="flex items-center gap-4">
-                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                        
                         <h2 className="text-xl font-semibold">DocSpace Editor</h2>
                     </div>
                 </div>

@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UploadModal from '../components/UploadModal';
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 import { Search, Edit3, Compass, Bot, FileText, BookOpen } from 'lucide-react';
 
 // ── Sparkling particle background ──────────────────────────────────────────
@@ -89,7 +88,7 @@ const Home = () => {
                 {/* Header */}
                 <header className={`z-10 h-20 flex items-center justify-between px-8 border-b ${isDark ? 'border-white/5 bg-black/20 text-white' : 'border-black/5 bg-white/40 text-black'} backdrop-blur-md`}>
                     <div className="flex items-center gap-4">
-                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                        
                         <h2 className="text-xl font-semibold">Dashboard</h2>
                     </div>
                     <div className="flex items-center gap-6">

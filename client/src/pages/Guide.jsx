@@ -1,5 +1,4 @@
 import AppSidebar from '../components/AppSidebar';
-import HamburgerButton from '../components/HamburgerButton';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -294,7 +293,7 @@ const Guide = () => {
                 {/* Header */}
                 <header className="relative z-20 flex items-center justify-between px-8 py-4 border-b flex-shrink-0" style={isDark ? { background: "rgba(0,0,0,0.8)", backdropFilter: "blur(20px)", borderColor: "rgba(56,189,248,0.12)" } : { background: "rgba(255,255,255,0.8)", backdropFilter: "blur(20px)", borderColor: "rgba(0,0,0,0.05)" }}>
                     <div className="flex items-center gap-4">
-                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
+                        
                         <h2 className={`text-xl font-semibold ${isDark ? "text-gray-200" : "text-black"}`}>Research Guide</h2>
                     </div>
                     <div className="flex items-center gap-3">
