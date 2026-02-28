@@ -3,15 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import html2pdf from 'html2pdf.js';
 import {
-    LayoutDashboard, Search, FileText, Upload, Settings, LogOut, Menu,
-    BookOpen, Bot, Edit3, Plus, Trash2, Save, Printer, Download
-    , Compass, Star
-    , GitPullRequest
+    FileText, Plus, Trash2, Save, Download
 } from 'lucide-react';
 import UploadModal from '../components/UploadModal';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import API_BASE_URL from '../config';
+import AppSidebar from '../components/AppSidebar';
+import HamburgerButton from '../components/HamburgerButton';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN DOCSPACE COMPONENT — Google Docs-style Editor
@@ -297,45 +296,13 @@ const DocSpace = () => {
                 .docspace-editor .ql-editor p { margin-bottom: 0.5rem; }
             `}</style>
 
-            {/* Navigation Sidebar (Synced with rest of app) */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 ${isSidebarOpen ? 'lg:flex' : 'lg:hidden'} ${isDark ? 'bg-black/80 backdrop-blur-xl border-white/5' : 'bg-white/80 backdrop-blur-xl border-black/5'}`}>
-                <div className={`p-8 border-b ${isDark ? 'border-white/5' : 'border-black/5'}`}>
-                    <div className="flex items-center gap-3 text-[#38bdf8] font-bold text-2xl tracking-tight">
-                        <div className={`p-2 rounded-xl transition-all ${isDark ? 'bg-[#38bdf8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-white shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}>
-                            <LayoutDashboard size={22} className={isDark ? "text-[#38bdf8]" : "text-black"} />
-                        </div>
-                        <span className="font-black tracking-tight text-transparent bg-clip-text" style={{ backgroundImage: isDark ? 'linear-gradient(90deg, #38bdf8, #FFFFFF, #38bdf8)' : 'linear-gradient(90deg, #0284c7, #000000, #0284c7)' }}>CLARION</span>
-                    </div>
-                </div>
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-hide">
-                    <SidebarItem icon={<LayoutDashboard size={18} />} text="Home" onClick={() => navigate('/home')} isDark={isDark} />
-                    <SidebarItem icon={<Search size={18} />} text="Discover Papers" onClick={() => navigate('/search')} isDark={isDark} />
-                    <SidebarItem icon={<BookOpen size={18} />} text="Paper Drafting" onClick={() => navigate('/draft')} isDark={isDark} />
-                    <SidebarItem icon={<Edit3 size={18} />} text="DocSpace Editor" active={true} onClick={() => { }} isDark={isDark} />
-                    <SidebarItem icon={<FileText size={18} />} text="Workspace" onClick={() => navigate('/workspace')} isDark={isDark} />
-                    <SidebarItem icon={<Star size={18} />} text="My Library" onClick={() => navigate('/library')} isDark={isDark} />
-                    <SidebarItem icon={<Bot size={18} />} text="AI Assistant" onClick={() => navigate('/ai')} isDark={isDark} />
-                    <SidebarItem icon={<Compass size={18} />} text="Research Guide" onClick={() => navigate('/guide')} isDark={isDark} />
-                    <SidebarItem icon={<GitPullRequest size={18} />} text="Contributions" onClick={() => navigate('/contributions')} isDark={isDark} />
-                </nav>
-                <div className={`p-4 border-t space-y-2 ${isDark ? 'border-white/5' : 'border-black/5'}`}>
-                    <SidebarItem icon={<Settings size={18} />} text="Settings" onClick={() => navigate('/settings')} isDark={isDark} />
-                    <button onClick={handleLogout} className={`flex items-center gap-3 transition-all duration-300 w-full px-4 py-3 rounded-2xl border border-transparent ${isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/5' : 'text-gray-600 hover:bg-red-50 hover:border-transparent hover:text-red-600 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}>
-                        <LogOut size={18} /><span className="font-medium tracking-wide text-sm">Logout</span>
-                    </button>
-                </div>
-            </aside>
+            <AppSidebar isOpen={isSidebarOpen} activePage="docspace" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
 
             {/* Main Content Area */}
             <main className={`flex-1 flex flex-col relative overflow-hidden ${isDark ? 'bg-black' : 'bg-[#f8fafc]'}`}>
                 <div className={`z-20 h-16 flex items-center justify-between px-8 border-b backdrop-blur-md ${isDark ? 'bg-black/40 border-white/5 text-white' : 'bg-white/40 border-black/5 text-black'}`}>
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className={`p-2 rounded-lg transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-white border border-transparent text-black shadow-[4px_4px_0_#e2e8f0] hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(56,189,248,0.8),_0_0_5px_rgba(56,189,248,1)]'}`}
-                        >
-                            <Menu size={20} />
-                        </button>
+                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
                         <h2 className="text-xl font-semibold">DocSpace Editor</h2>
                     </div>
                 </div>
@@ -458,18 +425,5 @@ const DocSpace = () => {
     );
 };
 
-const SidebarItem = ({ icon, text, active, onClick, isDark }) => (
-    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 group ${active
-        ? isDark
-            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
-            : 'bg-[#e0f2fe] text-[#0284c7] border border-[#38bdf8]'
-        : isDark
-            ? 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent'
-            : 'bg-transparent text-gray-600 border border-transparent hover:bg-white hover:border-[#38bdf8] hover:text-black hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'
-        }`}>
-        <div className={`transition-transform ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
-        <span className="font-medium text-sm tracking-wide">{text}</span>
-    </div>
-);
 
 export default DocSpace;

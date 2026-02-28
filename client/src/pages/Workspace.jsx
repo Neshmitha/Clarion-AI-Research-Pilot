@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../config';
-import { LayoutDashboard, Search, FileText, Upload, Settings, LogOut, Plus, File, Menu, X as CloseIcon, Trash2, Edit2, BookOpen, Bot, Star, Edit3, Compass, ChevronDown , GitPullRequest } from 'lucide-react';
+import { Plus, File, Trash2, Edit2, Bot, Star, ChevronDown } from 'lucide-react';
 import UploadModal from '../components/UploadModal';
 import EditPaperModal from '../components/EditPaperModal';
+import AppSidebar from '../components/AppSidebar';
+import HamburgerButton from '../components/HamburgerButton';
 
 const Workspace = () => {
     const navigate = useNavigate();
@@ -75,49 +77,14 @@ const Workspace = () => {
 
     return (
         <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8fafc] text-black'}`}>
-            {/* Sidebar (Synced) */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 ${isSidebarOpen ? 'lg:flex' : 'lg:hidden'} ${isDark ? 'bg-black/80 backdrop-blur-xl border-white/5' : 'bg-white/80 backdrop-blur-xl border-transparent/10'}`}>
-                <div className={`p-8 border-b ${isDark ? 'border-white/5' : 'border-transparent/5'}`}>
-                    <div className="flex items-center gap-3 text-[#38bdf8] font-bold text-2xl tracking-tight">
-                        <div className={`p-2 rounded-xl transition-all ${isDark ? 'bg-[#38bdf8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-white shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}>
-                            <LayoutDashboard size={22} className={isDark ? "text-[#38bdf8]" : "text-black"} />
-                        </div>
-                        <span className="font-black tracking-tight text-transparent bg-clip-text" style={{ backgroundImage: isDark ? 'linear-gradient(90deg, #38bdf8, #FFFFFF, #38bdf8)' : 'linear-gradient(90deg, #0284c7, #000000, #0284c7)' }}>CLARION</span>
-                    </div>
-                </div>
-
-                <nav className="flex-1 p-4 space-y-2">
-                    <SidebarItem icon={<LayoutDashboard size={18} />} text="Home" onClick={() => navigate('/home')} isDark={isDark} />
-                    <SidebarItem icon={<Search size={18} />} text="Discover Papers" onClick={() => navigate('/search')} isDark={isDark} />
-                    <SidebarItem icon={<BookOpen size={18} />} text="Paper Drafting" onClick={() => navigate('/draft')} isDark={isDark} />
-                    <SidebarItem icon={<Edit3 size={18} />} text="DocSpace Editor" onClick={() => navigate('/docspace')} isDark={isDark} />
-                    <SidebarItem icon={<FileText size={18} />} text="Workspace" active isDark={isDark} />
-                    <SidebarItem icon={<Star size={18} />} text="My Library" onClick={() => navigate('/library')} isDark={isDark} />
-                    <SidebarItem icon={<Bot size={18} />} text="AI Assistant" onClick={() => navigate('/ai')} isDark={isDark} />
-                    <SidebarItem icon={<Compass size={18} />} text="Research Guide" onClick={() => navigate('/guide')} isDark={isDark} />
-                    <SidebarItem icon={<GitPullRequest size={18} />} text="Contributions" onClick={() => navigate('/contributions')} isDark={isDark} />
-                </nav>
-
-                <div className={`p-4 border-t space-y-2 ${isDark ? 'border-white/5' : 'border-transparent/10'}`}>
-                    <SidebarItem icon={<Settings size={18} />} text="Settings" onClick={() => navigate('/settings')} isDark={isDark} />
-                    <button onClick={handleLogout} className={`flex items-center gap-3 transition-all duration-300 w-full px-4 py-3 rounded-2xl border border-transparent ${isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/5' : 'text-gray-600 hover:bg-red-50 hover:border-transparent hover:text-red-600 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}>
-                        <LogOut size={18} />
-                        <span className="font-medium">Sign Out</span>
-                    </button>
-                </div>
-            </aside>
+            <AppSidebar isOpen={isSidebarOpen} activePage="workspace" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
 
             {/* Main Content */}
             <main className={`flex-1 flex flex-col relative ${isDark ? 'bg-black' : 'bg-[#f8fafc]'}`}>
                 {/* Header */}
                 <header className={`z-10 h-20 flex items-center justify-between px-8 border-b backdrop-blur-md ${isDark ? 'bg-black/40 border-white/5' : 'bg-white/40 border-transparent/10'}`}>
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className={`p-2 rounded-lg transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-white border-2 border-transparent text-black shadow-sm hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(56,189,248,0.8),_0_0_5px_rgba(56,189,248,1)]'}`}
-                        >
-                            <Menu size={20} />
-                        </button>
+                        <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
                         <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-200' : 'text-black'}`}>Workspace</h2>
                     </div>
                     <div className="flex items-center gap-4">
@@ -205,19 +172,6 @@ const Workspace = () => {
     );
 };
 
-const SidebarItem = ({ icon, text, active, onClick, isDark }) => (
-    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 group ${active
-        ? isDark 
-            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' 
-            : 'bg-[#e0f2fe] text-[#0284c7] border border-[#38bdf8]'
-        : isDark 
-            ? 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent' 
-            : 'bg-transparent text-gray-600 border border-transparent hover:bg-white hover:border-[#38bdf8] hover:text-black hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'
-        }`}>
-        <div className={`transition-transform ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
-        <span className="font-medium text-sm tracking-wide">{text}</span>
-    </div>
-);
 
 
 const PaperCard = ({ paper, onEdit, onDelete, onToggleFavorite, isDark }) => {

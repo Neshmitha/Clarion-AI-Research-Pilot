@@ -1,3 +1,5 @@
+import AppSidebar from '../components/AppSidebar';
+import HamburgerButton from '../components/HamburgerButton';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -135,36 +137,7 @@ const Library = () => {
     return (
         <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-[#050505] text-white' : 'bg-[#f8fafc] text-black'}`}>
             {/* Sidebar */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r flex flex-col transition-transform duration-300 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 ${isSidebarOpen ? 'lg:flex' : 'lg:hidden'} ${isDark ? 'bg-black/80 backdrop-blur-2xl border-white/5' : 'bg-white/80 backdrop-blur-xl border-transparent/10'}`}>
-                <div className={`p-8 border-b ${isDark ? 'border-white/5' : 'border-transparent/5'}`}>
-                    <div className="flex items-center gap-3 text-[#38bdf8] font-bold text-2xl tracking-tight">
-                        <div className={`p-2 rounded-xl transition-all ${isDark ? 'bg-[#38bdf8]/10 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-white shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}>
-                            <LayoutDashboard size={22} className={isDark ? "text-[#38bdf8]" : "text-black"} />
-                        </div>
-                        <span className="font-black tracking-tight text-transparent bg-clip-text" style={{ backgroundImage: isDark ? 'linear-gradient(90deg, #38bdf8, #FFFFFF, #38bdf8)' : 'linear-gradient(90deg, #0284c7, #000000, #0284c7)' }}>CLARION</span>
-                    </div>
-                </div>
-
-                <nav className="flex-1 px-4 space-y-1.5">
-                    <SidebarItem icon={<LayoutDashboard size={18} />} text="Home" onClick={() => navigate('/home')} isDark={isDark} />
-                    <SidebarItem icon={<Search size={18} />} text="Discover Papers" onClick={() => navigate('/search')} isDark={isDark} />
-                    <SidebarItem icon={<BookOpen size={18} />} text="Paper Drafting" onClick={() => navigate('/draft')} isDark={isDark} />
-                    <SidebarItem icon={<Edit3 size={18} />} text="DocSpace Editor" onClick={() => navigate('/docspace')} isDark={isDark} />
-                    <SidebarItem icon={<FileText size={18} />} text="Workspace" onClick={() => navigate('/workspace')} isDark={isDark} />
-                    <SidebarItem icon={<Star size={18} />} text="My Library" active isDark={isDark} />
-                    <SidebarItem icon={<Bot size={18} />} text="AI Assistant" onClick={() => navigate('/ai')} isDark={isDark} />
-                    <SidebarItem icon={<Compass size={18} />} text="Research Guide" onClick={() => navigate('/guide')} isDark={isDark} />
-                    <SidebarItem icon={<GitPullRequest size={18} />} text="Contributions" onClick={() => navigate('/contributions')} isDark={isDark} />
-                </nav>
-
-                <div className={`p-6 border-t space-y-2 ${isDark ? 'border-white/5' : 'border-transparent/10'}`}>
-                    <SidebarItem icon={<Settings size={18} />} text="Settings" onClick={() => navigate('/settings')} isDark={isDark} />
-                    <button onClick={handleLogout} className={`flex items-center gap-3 transition-all duration-300 w-full px-4 py-3 rounded-2xl border border-transparent ${isDark ? 'text-gray-400 hover:text-red-400 hover:bg-red-500/5' : 'text-gray-600 hover:bg-red-50 hover:border-transparent hover:text-red-600 hover:shadow-[0_0_20px_rgba(239,68,68,0.4)]'}`}>
-                        <LogOut size={16} />
-                        <span className="text-sm font-medium">Log Out</span>
-                    </button>
-                </div>
-            </aside>
+            <AppSidebar isOpen={isSidebarOpen} activePage="library" isDark={isDark} onClose={() => setIsSidebarOpen(false)} />
 
             {/* Main Section */}
             <main className="flex-1 flex flex-col relative overflow-hidden">
@@ -172,12 +145,7 @@ const Library = () => {
                 <div className="px-8 pt-8 pb-4 z-20">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
                         <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                                className={`p-2 rounded-lg transition-all ${isDark ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-white border-2 border-transparent text-black shadow-sm hover:-translate-y-0.5 hover:shadow-[0_0_20px_rgba(56,189,248,0.8),_0_0_5px_rgba(56,189,248,1)]'}`}
-                            >
-                                <Menu size={20} />
-                            </button>
+                            <HamburgerButton isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} isDark={isDark} />
                             <h2 className={`text-xl font-semibold ${isDark ? 'text-gray-200' : 'text-black'}`}>My Library</h2>
                         </div>
 
@@ -346,19 +314,6 @@ const Library = () => {
     );
 };
 
-const SidebarItem = ({ icon, text, active, onClick, isDark }) => (
-    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 group ${active
-        ? isDark 
-            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' 
-            : 'bg-[#e0f2fe] text-[#0284c7] border border-[#38bdf8]'
-        : isDark 
-            ? 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent' 
-            : 'bg-transparent text-gray-600 border border-transparent hover:bg-white hover:border-[#38bdf8] hover:text-black hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'
-        }`}>
-        <div className={`transition-transform ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
-        <span className="font-medium text-sm tracking-wide">{text}</span>
-    </div>
-);
 
 const CollectionCard = ({ icon, title, count, color, bgColor, isDark }) => (
     <div className={`flex items-center gap-4 px-6 py-4 rounded-3xl transition-all cursor-pointer min-w-[200px] group ${isDark ? 'bg-[#111] border border-white/5 hover:border-white/10' : 'bg-white border-2 border-transparent shadow-sm hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(56,189,248,0.8),_0_0_5px_rgba(56,189,248,1)]'}`}>
