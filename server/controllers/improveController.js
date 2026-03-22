@@ -14,7 +14,14 @@ exports.improveSection = async (req, res) => {
         const { sectionText, action } = req.body;
         if (!sectionText || !action) return res.status(400).json({ error: 'sectionText and action are required' });
 
-        const actionPrompt = ACTION_PROMPTS[action] || ACTION_PROMPTS.clarity;
+        let actionPrompt = ACTION_PROMPTS.clarity;
+        if (action.startsWith('custom:')) {
+            const customQuery = action.replace('custom:', '').trim();
+            actionPrompt = `Update the following text according to this specific instruction: "${customQuery}". Make the modifications cleanly and professionally.`;
+        } else {
+            actionPrompt = ACTION_PROMPTS[action] || ACTION_PROMPTS.clarity;
+        }
+
         const prompt = `${actionPrompt}
 
 SECTION TO IMPROVE:

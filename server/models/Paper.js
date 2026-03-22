@@ -21,6 +21,7 @@ const PaperSchema = new mongoose.Schema({
     source: { type: String, default: 'upload' }, // 'upload' or 'arXiv'
     originalName: { type: String, required: false }, // Optional for written/external
     content: { type: String, required: false }, // For Doc Space papers
+    googleDocId: { type: String, required: false }, // For Google Docs integration
     template: { type: String, default: 'IEEE Journal' }, // Template format for Doc Space
     llamaMetadata: { type: Object, required: false }, // Extracted metadata from LlamaIndex
     isFavorite: { type: Boolean, default: false }, // User marked as favorite

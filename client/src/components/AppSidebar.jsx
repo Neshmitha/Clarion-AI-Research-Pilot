@@ -100,15 +100,11 @@ const AppSidebar = ({ isOpen, activePage, isDark, onClose, onToggle }) => {
                     </div>
                     <span
                         className={`
-                            font-black tracking-tight text-transparent bg-clip-text text-xl
-                            whitespace-nowrap overflow-hidden transition-all duration-300
+                            font-black tracking-tight text-xl
+                            whitespace-nowrap overflow-hidden transition-all duration-500
                             ${isOpen ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0'}
+                            ${isDark ? 'text-white' : 'text-black'}
                         `}
-                        style={{
-                            backgroundImage: isDark
-                                ? 'linear-gradient(90deg, #38bdf8, #FFFFFF, #38bdf8)'
-                                : 'linear-gradient(90deg, #0284c7, #000000, #0284c7)'
-                        }}
                     >
                         CLARION
                     </span>

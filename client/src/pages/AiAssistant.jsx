@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import API_BASE_URL from '../config';
-import { LayoutDashboard, Search, FileText, Upload, Settings, LogOut, Plus, File, Menu, Trash2, Edit2, BookOpen, Bot, Star, Edit3, Compass, Send, Loader2, X, ChevronDown, Eye, EyeOff , GitPullRequest } from 'lucide-react';
+import { LayoutDashboard, Search, FileText, Upload, Settings, LogOut, Plus, File, Menu, Trash2, Edit2, BookOpen, Bot, Star, Edit3, Compass, Send, Loader2, X, ChevronDown, Eye, EyeOff , GitPullRequest, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import UploadModal from '../components/UploadModal';
 import EditPaperModal from '../components/EditPaperModal';
 
@@ -37,6 +37,65 @@ const AiAssistant = () => {
     const [showPaperView, setShowPaperView] = useState(false);
     const [extractedJson, setExtractedJson] = useState(null);
     const messagesEndRef = useRef(null);
+
+    // Voice Chat States
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef(null);
+
+    useEffect(() => {
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = true;
+
+            recognitionRef.current.onresult = (event) => {
+                let currentTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    currentTranscript += event.results[i][0].transcript;
+                }
+                setQuery(currentTranscript);
+            };
+
+            recognitionRef.current.onerror = (event) => {
+                console.error("Speech recognition error", event.error);
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+            };
+        }
+    }, []);
+
+    const toggleListening = () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+        } else {
+            setQuery(''); // clear previous query
+            try { recognitionRef.current?.start(); } catch(e){}
+            setIsListening(true);
+        }
+    };
+
+    const [speakingMsgIdx, setSpeakingMsgIdx] = useState(null);
+
+    const speakMessage = (text, idx) => {
+        if (speakingMsgIdx === idx && window.speechSynthesis.speaking) {
+            // Toggle off
+            window.speechSynthesis.cancel();
+            setSpeakingMsgIdx(null);
+        } else {
+            // Toggle on
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.onend = () => setSpeakingMsgIdx(null);
+            utterance.onerror = () => setSpeakingMsgIdx(null);
+            window.speechSynthesis.speak(utterance);
+            setSpeakingMsgIdx(idx);
+        }
+    };
 
     const domains = [
         'ALL DOMAINS', 'Agriculture', 'Climate', 'Medtech',
@@ -180,13 +239,22 @@ const AiAssistant = () => {
                             <div className={`flex-1 rounded-3xl border overflow-hidden flex flex-col mb-6 ${isDark ? 'bg-black/40 border-white/5' : 'bg-white/80 border-gray-200 shadow-sm'}`}>
                                 <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
                                     {messages.map((msg, idx) => (
-                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[85%] rounded-2xl p-4 ${msg.role === 'user'
+                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group`}>
+                                            <div className={`max-w-[85%] rounded-2xl p-4 relative ${msg.role === 'user'
                                                 ? (isDark ? 'bg-[#000000] text-white border border-[#38bdf8]/40 shadow-[0_0_20px_rgba(56,189,248,0.1)]' : 'bg-[#f0f9ff] text-blue-900 border border-transparent shadow-sm')
                                                 : (isDark ? 'bg-white/5 text-gray-200 border border-white/10' : 'bg-white border border-gray-100 text-gray-800 shadow-sm')}`}>
                                                 <div className={`prose prose-sm whitespace-pre-wrap leading-relaxed ${isDark ? 'prose-invert' : ''}`}>
                                                     {msg.content}
                                                 </div>
+                                                {msg.role === 'bot' && (
+                                                    <button 
+                                                        onClick={() => speakMessage(msg.content, idx)}
+                                                        className={`absolute -right-10 bottom-2 p-2 rounded-full transition-opacity ${speakingMsgIdx === idx ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} ${isDark ? (speakingMsgIdx === idx ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-white/10 hover:bg-white/20 text-gray-300') : (speakingMsgIdx === idx ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-blue-50 hover:bg-blue-100 text-blue-600')}`}
+                                                        title={speakingMsgIdx === idx ? "Stop Speaking" : "Speak Answer"}
+                                                    >
+                                                        {speakingMsgIdx === idx ? <VolumeX size={16} className="animate-pulse" /> : <Volume2 size={16} />}
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -286,28 +354,35 @@ const AiAssistant = () => {
                                         </div>
                                     )}
 
-                                    <form onSubmit={handleSend} className="relative mt-2">
-                                        <input
-                                            type="text"
-                                            value={query}
-                                            onChange={(e) => setQuery(e.target.value)}
-                                            placeholder="Inquire about methodology, results, or technical details..."
-                                            className={`w-full rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:ring-2 transition-all ${isDark ? 'bg-black border border-[#38bdf8]/30 text-white focus:ring-[#38bdf8]/50 placeholder:text-gray-600' : 'bg-white border border-transparent text-gray-800 shadow-sm focus:ring-blue-300 placeholder:text-gray-400 hover:shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={!query.trim() || loading}
-                                            className={`absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 ${isDark ? 'text-white border' : 'bg-[#e0f2fe] text-blue-700 shadow-sm'}`}
-                                            style={isDark ? {
-                                                background: '#000000',
-                                                borderColor: 'rgba(56,189,248,0.4)',
-                                                boxShadow: '0 0 12px rgba(56,189,248,0.25)',
-                                            } : {}}
-                                            onMouseEnter={isDark ? (e => e.currentTarget.style.boxShadow = '0 0 22px rgba(56,189,248,0.55)') : (e => { e.currentTarget.style.boxShadow = '0 0 20px rgba(56,189,248,0.6)'; e.currentTarget.style.transform = 'translateY(-50%) translateY(-2px)' })}
-                                            onMouseLeave={isDark ? (e => e.currentTarget.style.boxShadow = '0 0 12px rgba(56,189,248,0.25)') : (e => { e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)'; e.currentTarget.style.transform = 'translateY(-50%)' })}
-                                        >
-                                            <Send size={20} />
-                                        </button>
+                                    <form onSubmit={handleSend} className="relative mt-2 flex items-center gap-2">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="text"
+                                                value={query}
+                                                onChange={(e) => setQuery(e.target.value)}
+                                                placeholder={isListening ? "Listening... Speak now" : "Inquire about methodology, results, or technical details..."}
+                                                className={`w-full rounded-2xl py-4 pl-6 pr-24 text-sm focus:outline-none focus:ring-2 transition-all ${isDark ? (isListening ? 'bg-blue-900/30 border-[#38bdf8]' : 'bg-black border border-[#38bdf8]/30 text-white focus:ring-[#38bdf8]/50 placeholder:text-gray-600') : (isListening ? 'bg-blue-50 border-blue-400 text-gray-900' : 'bg-white border border-transparent text-gray-800 shadow-sm focus:ring-blue-300 placeholder:text-gray-400 hover:shadow-[0_0_15px_rgba(56,189,248,0.3)]')}`}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={toggleListening}
+                                                className={`absolute right-14 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-all ${isListening ? 'text-red-500 animate-pulse' : (isDark ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-blue-600')}`}
+                                            >
+                                                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={!query.trim() || loading}
+                                                className={`absolute right-3 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-all duration-200 disabled:opacity-50 ${isDark ? 'text-white border' : 'bg-[#e0f2fe] text-blue-700 shadow-sm'}`}
+                                                style={isDark ? {
+                                                    background: '#000000',
+                                                    borderColor: 'rgba(56,189,248,0.4)',
+                                                    boxShadow: '0 0 12px rgba(56,189,248,0.25)',
+                                                } : {}}
+                                            >
+                                                <Send size={20} />
+                                            </button>
+                                        </div>
                                     </form>
                                 </div>
                             </div>

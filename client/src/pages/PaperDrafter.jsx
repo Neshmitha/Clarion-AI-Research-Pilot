@@ -124,6 +124,8 @@ const IMPROVE_ACTIONS = [
 const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, isDark }) => {
     const [hovered, setHovered] = useState(false);
     const [improving, setImproving] = useState(false);
+    const [customPromptOpen, setCustomPromptOpen] = useState(false);
+    const [customPrompt, setCustomPrompt] = useState('');
 
     const renderLines = () => {
         const result = [];
@@ -198,7 +200,7 @@ const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, 
             {renderLines()}
 
             {/* Hover improve toolbar */}
-            {hovered && !improving && sectionHeader && (
+            {hovered && !improving && sectionHeader && !customPromptOpen && (
                 <div className={`absolute top-0 right-0 p-1 flex flex-col gap-0.5 z-10 rounded-lg shadow-lg ${isDark ? 'bg-[#1a1a2e] border border-[#38bdf8] shadow-[0_4px_20px_rgba(56,189,248,0.4)]' : 'bg-white border border-transparent shadow-[0_0_30px_rgba(56,189,248,0.2)]'}`}>
                     {IMPROVE_ACTIONS.map(a => (
                         <button
@@ -209,6 +211,50 @@ const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, 
                             {a.label}
                         </button>
                     ))}
+                    <button
+                        onClick={() => setCustomPromptOpen(true)}
+                        className={`px-3 py-1.5 rounded-md text-[11px] font-bold text-left whitespace-nowrap transition-all ${isDark ? 'text-white hover:bg-[#38bdf8]/20' : 'bg-white text-black hover:bg-blue-50 hover:text-blue-600 hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}
+                    >
+                        ✨ Change with AI...
+                    </button>
+                </div>
+            )}
+            {customPromptOpen && !improving && (
+                <div className={`absolute top-0 right-0 p-2 z-10 rounded-lg shadow-lg flex flex-col gap-2 ${isDark ? 'bg-[#1a1a2e] border border-[#38bdf8] shadow-[0_4px_20px_rgba(56,189,248,0.4)]' : 'bg-white border border-blue-200 shadow-[0_0_30px_rgba(56,189,248,0.2)]'}`}>
+                    <div className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-[#38bdf8]' : 'text-blue-600'}`}>✨ Change with AI</div>
+                    <input
+                        type="text"
+                        autoFocus
+                        value={customPrompt}
+                        onChange={e => setCustomPrompt(e.target.value)}
+                        placeholder="E.g. Make it more formal..."
+                        className={`text-[11px] px-2 py-1.5 rounded outline-none w-52 ${isDark ? 'bg-black text-white border border-white/20 focus:border-[#38bdf8]' : 'bg-gray-50 border border-gray-200 focus:border-blue-400'}`}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter' && customPrompt.trim()) {
+                                setImproving(true);
+                                onImprove(text, `custom:${customPrompt}`, setImproving);
+                                setCustomPromptOpen(false);
+                                setCustomPrompt('');
+                            }
+                            if (e.key === 'Escape') setCustomPromptOpen(false);
+                        }}
+                    />
+                    <div className="flex gap-1.5">
+                        <button
+                            disabled={!customPrompt.trim()}
+                            onClick={() => {
+                                if (!customPrompt.trim()) return;
+                                setImproving(true);
+                                onImprove(text, `custom:${customPrompt}`, setImproving);
+                                setCustomPromptOpen(false);
+                                setCustomPrompt('');
+                            }}
+                            className={`flex-1 text-[11px] py-1 rounded font-bold transition-all disabled:opacity-40 ${isDark ? 'bg-[#38bdf8] text-black hover:bg-blue-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                        >
+                            Apply
+                        </button>
+                        <button onClick={() => setCustomPromptOpen(false)} className={`px-2 py-1 text-[11px] rounded ${isDark ? 'text-gray-400 hover:text-white bg-white/5' : 'text-gray-500 hover:text-black bg-gray-100'}`}>✕</button>
+                    </div>
                 </div>
             )}
             {improving && <div className={`absolute top-1 right-1 text-[10px] px-2 py-1 rounded font-bold ${isDark ? 'text-[#38bdf8] bg-[#1a1a2e]' : 'text-blue-600 bg-white border border-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.3)]'}`}>✨ Improving...</div>}

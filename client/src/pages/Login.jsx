@@ -43,14 +43,44 @@ const Login = () => {
 
     return (
         <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 overflow-hidden">
-            {/* Background Image */}
-            <div
-                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-                style={{
-                    backgroundImage: `url('/loginbg.png')`,
-                    filter: isDark ? 'brightness(0.3)' : 'none'
-                }}
-            />
+            {/* Moving Light Blue Sparkling Background */}
+            <div className={`fixed inset-0 z-0 transition-colors duration-1000 ${isDark ? 'bg-[#020617]' : 'bg-[#f8fafc]'}`}>
+                {[...Array(50)].map((_, i) => (
+                    <motion.div
+                        key={i}
+                        className={`absolute rounded-full pointer-events-none ${isDark ? 'bg-blue-400' : 'bg-blue-600'}`}
+                        initial={{
+                            x: Math.random() * window.innerWidth,
+                            y: Math.random() * window.innerHeight,
+                            scale: Math.random() * 0.5 + 0.2,
+                            opacity: Math.random() * 0.5
+                        }}
+                        animate={{
+                            y: [null, Math.random() * window.innerHeight],
+                            x: [null, Math.random() * window.innerWidth],
+                            opacity: [0.2, 0.8, 0.2],
+                            scale: [1, 1.5, 1],
+                        }}
+                        transition={{
+                            duration: Math.random() * 20 + 10,
+                            repeat: Infinity,
+                            ease: "linear",
+                            opacity: {
+                                duration: Math.random() * 3 + 2,
+                                repeat: Infinity,
+                            }
+                        }}
+                        style={{
+                            width: Math.random() * 3 + 1 + 'px',
+                            height: Math.random() * 3 + 1 + 'px',
+                            filter: `blur(${Math.random() * 2}px)`,
+                            boxShadow: `0 0 ${Math.random() * 10 + 5}px rgba(56, 189, 248, 0.8)`
+                        }}
+                    />
+                ))}
+                {/* Subtle Gradient Glows */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.1),transparent_70%)]" />
+            </div>
 
             {/* Theme Toggle Button */}
             <button
@@ -66,7 +96,7 @@ const Login = () => {
                 className="relative z-10 mb-8 text-center"
             >
                 <h1
-                    className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-white to-indigo-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.3)] pr-2"
+                    className={`text-6xl font-black transition-colors duration-500 pr-2 ${isDark ? 'text-white' : 'text-black'}`}
                     style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                     CLARION

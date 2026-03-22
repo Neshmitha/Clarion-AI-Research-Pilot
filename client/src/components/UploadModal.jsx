@@ -137,19 +137,7 @@ const UploadModal = ({ isOpen, onClose, onUploadSuccess, isDark }) => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className={`w-full py-4 px-4 font-black rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-4 flex items-center justify-center gap-2 ${activeIsDark ? 'text-white' : 'text-black bg-white hover:-translate-y-0.5'}`}
-                        style={activeIsDark ? {
-                            background: '#0a0a0a',
-                            border: '1px solid #38bdf8',
-                            boxShadow: '0 0 15px rgba(56,189,248,0.25)',
-                            letterSpacing: '0.05em'
-                        } : {
-                            border: '2px solid #38bdf8',
-                            boxShadow: '0 0 12px rgba(56,189,248,0.3)',
-                            letterSpacing: '0.05em'
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.boxShadow = activeIsDark ? '0 0 30px rgba(56,189,248,0.5)' : '0 0 25px rgba(56,189,248,0.7), 0 0 6px rgba(56,189,248,0.9)' }}
-                        onMouseLeave={e => { e.currentTarget.style.boxShadow = activeIsDark ? '0 0 15px rgba(56,189,248,0.25)' : '0 0 12px rgba(56,189,248,0.3)' }}
+                        className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-4 ${activeIsDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_15px_rgba(56,189,248,0.25)] hover:shadow-[0_0_30px_rgba(56,189,248,0.5)]' : 'bg-white text-black border border-transparent shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)] hover:-translate-y-1'}`}
                     >
                         {loading ? (
                             <><Loader2 className="animate-spin" size={20} /> SYNCING...</>

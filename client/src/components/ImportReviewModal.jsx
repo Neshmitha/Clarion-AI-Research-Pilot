@@ -148,7 +148,7 @@ const ImportReviewModal = ({ isOpen, onClose, selectedPapers, onConfirm }) => {
                     <button
                         onClick={handleConfirm}
                         disabled={loading}
-                        className={`px-10 py-3.5 rounded-xl font-black transition-all duration-300 flex items-center gap-2 tracking-widest text-[13px] ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_15px_rgba(56,189,248,0.25)] hover:shadow-[0_0_30px_rgba(56,189,248,0.5)]' : 'bg-white text-black border border-transparent shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'}`}
+                        className={`px-10 py-3.5 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 disabled:cursor-not-allowed ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.25)] hover:shadow-[0_0_22px_rgba(56,189,248,0.55)]' : 'bg-white text-black border border-transparent shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)] hover:-translate-y-1'}`}
                     >
                         {loading ? <><Loader2 className="animate-spin" size={18} /> SYNCING...</> : <><Check size={18} /> CONFIRM IMPORT</>}
                     </button>

@@ -150,12 +150,13 @@ router.delete('/:id', async (req, res) => {
 // Save Written Paper (Doc Space)
 router.post('/write', async (req, res) => {
     try {
-        const { userId, title, domain, content, paperId, template } = req.body;
+        const { userId, title, domain, content, paperId, template, googleDocId } = req.body;
 
         if (paperId) {
             // Update existing
             const updateFields = { title, domain, content };
             if (template) updateFields.template = template;
+            if (googleDocId) updateFields.googleDocId = googleDocId;
             const updatedPaper = await Paper.findByIdAndUpdate(
                 paperId,
                 updateFields,
@@ -170,6 +171,7 @@ router.post('/write', async (req, res) => {
                 domain: domain || 'Other',
                 content: content || '',
                 template: template || 'IEEE Journal',
+                googleDocId: googleDocId || '',
                 source: 'written',
                 originalName: 'Draft Paper'
             });
