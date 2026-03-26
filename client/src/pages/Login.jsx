@@ -45,41 +45,22 @@ const Login = () => {
         <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 overflow-hidden">
             {/* Moving Light Blue Sparkling Background */}
             <div className={`fixed inset-0 z-0 transition-colors duration-1000 ${isDark ? 'bg-[#020617]' : 'bg-[#f8fafc]'}`}>
-                {[...Array(50)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className={`absolute rounded-full pointer-events-none ${isDark ? 'bg-blue-400' : 'bg-blue-600'}`}
-                        initial={{
-                            x: Math.random() * window.innerWidth,
-                            y: Math.random() * window.innerHeight,
-                            scale: Math.random() * 0.5 + 0.2,
-                            opacity: Math.random() * 0.5
-                        }}
-                        animate={{
-                            y: [null, Math.random() * window.innerHeight],
-                            x: [null, Math.random() * window.innerWidth],
-                            opacity: [0.2, 0.8, 0.2],
-                            scale: [1, 1.5, 1],
-                        }}
-                        transition={{
-                            duration: Math.random() * 20 + 10,
-                            repeat: Infinity,
-                            ease: "linear",
-                            opacity: {
-                                duration: Math.random() * 3 + 2,
-                                repeat: Infinity,
-                            }
-                        }}
-                        style={{
-                            width: Math.random() * 3 + 1 + 'px',
-                            height: Math.random() * 3 + 1 + 'px',
-                            filter: `blur(${Math.random() * 2}px)`,
-                            boxShadow: `0 0 ${Math.random() * 10 + 5}px rgba(56, 189, 248, 0.8)`
-                        }}
-                    />
-                ))}
+                {/* Background Image Layer */}
+                <div 
+                    className={`absolute inset-0 z-0 transition-opacity duration-1000 ${isDark ? 'opacity-30 brightness-[0.4] grayscale contrast-125' : 'opacity-[0.45] brightness-[1.08] contrast-[1.12] saturate-[1.1]'}`}
+                    style={{
+                        backgroundImage: 'url("/loginbg.png")',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        filter: isDark ? 'grayscale(100%)' : 'blur(0.4px)'
+                    }}
+                />
+                
+                {/* Soft Color Overlay for Pleasant Feel */}
+                {!isDark && <div className="absolute inset-0 z-0 bg-blue-500/5 mix-blend-soft-light pointer-events-none" />}
+                
                 {/* Subtle Gradient Glows */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.1),transparent_70%)]" />
+                <div className={`absolute inset-0 ${isDark ? 'bg-[radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.1),transparent_70%)]' : 'bg-[radial-gradient(circle_at_50%_50%,rgba(56,189,248,0.05),transparent_70%)]'}`} />
             </div>
 
             {/* Theme Toggle Button */}
@@ -96,7 +77,7 @@ const Login = () => {
                 className="relative z-10 mb-8 text-center"
             >
                 <h1
-                    className={`text-6xl font-black transition-colors duration-500 pr-2 ${isDark ? 'text-white' : 'text-black'}`}
+                    className={`text-6xl font-black transition-colors duration-500 pr-2 ${isDark ? 'text-white' : 'text-black drop-shadow-[0_2px_10px_rgba(59,130,246,0.2)]'}`}
                     style={{ fontFamily: "'Outfit', sans-serif" }}
                 >
                     CLARION
@@ -108,33 +89,33 @@ const Login = () => {
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`relative z-10 w-full max-w-md p-8 sm:p-10 rounded-3xl shadow-2xl backdrop-blur-xl transition-colors duration-500 ${isDark ? 'bg-black/60 border border-white/10' : 'bg-white/80 border border-white/20 shadow-gray-200/20'}`}
+                className={`relative z-10 w-full max-w-md p-8 sm:p-10 rounded-3xl shadow-2xl backdrop-blur-2xl transition-all duration-500 ${isDark ? 'bg-black/60 border border-white/10' : 'bg-white/90 border border-blue-50 shadow-xl shadow-blue-500/10'}`}
             >
                 <div className="text-center mb-8">
-                    <h2 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>Welcome Back</h2>
-                    <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Sign in to continue your research journey</p>
+                    <h2 className={`text-2xl font-bold mb-1 ${isDark ? 'text-white' : 'text-blue-900'}`}>Welcome Back</h2>
+                    <p className={`${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Sign in to continue your research journey</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Email</label>
+                        <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>Email</label>
                         <input
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 border ${isDark ? 'bg-black/40 border-white/10 text-white focus:border-blue-500 placeholder-gray-600' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-600 focus:bg-white placeholder-gray-400'}`}
+                            className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 border ${isDark ? 'bg-black/40 border-white/10 text-white focus:border-blue-500 placeholder-gray-600' : 'bg-white border-blue-100 text-gray-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder-gray-400'}`}
                             placeholder="you@example.com"
                             required
                         />
                     </div>
 
                     <div>
-                        <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
+                        <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>Password</label>
                         <input
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 border ${isDark ? 'bg-black/40 border-white/10 text-white focus:border-blue-500 placeholder-gray-600' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-600 focus:bg-white placeholder-gray-400'}`}
+                            className={`w-full px-4 py-3 rounded-xl focus:outline-none transition-all duration-300 border ${isDark ? 'bg-black/40 border-white/10 text-white focus:border-blue-500 placeholder-gray-600' : 'bg-white border-blue-100 text-gray-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 placeholder-gray-400'}`}
                             placeholder="........"
                             required
                         />

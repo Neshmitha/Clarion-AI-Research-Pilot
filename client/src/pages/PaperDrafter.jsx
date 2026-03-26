@@ -2,6 +2,9 @@ import AppSidebar from '../components/AppSidebar';
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import html2pdf from 'html2pdf.js';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 import {
     FileText, Sparkles, Loader2,
     LayoutDashboard, Search, LogOut, Menu,
@@ -14,12 +17,8 @@ import {
 import API_BASE_URL from '../config';
 
 // ─── Templates ────────────────────────────────────────────────────────────────
-const TEMPLATES = [
-    { id: 'IEEE Journal', brand: 'IEEE' },
-    { id: 'IEEE Conference', brand: 'IEEE' },
-    { id: 'Springer Journal', brand: 'Springer' },
-    { id: 'Springer Conference', brand: 'Springer' },
-];
+const TEMPLATES = ["ieee", "springer", "apa style", "acm", "elsevier"];
+const TYPES = ["conference", "journal"];
 
 // ─── Markdown cleaner ─────────────────────────────────────────────────────────
 const cleanMd = (text = '') =>
@@ -31,7 +30,7 @@ const isKeywordsLine = t => /^(#{1,3}\s*)?(keywords?|index terms?)\b/i.test(t.tr
 const isContributionsLine = t => /^(#{1,3}\s*)?(contributions?)\b/i.test(t.trim());
 const isSectionHeader = t => /^#{1,3}\s+/.test(t.trim()) || /^[IVX]+\.\s+\S/i.test(t.trim()) || /^\d+\.?\s+[A-Z]/.test(t.trim()) || /^[A-Z]\.\s+[A-Z]/.test(t.trim());
 const isListItem = t => /^[-*•]\s+/.test(t.trim());
-const isNumberedRef = t => /^\[\d+\]/.test(t.trim()) || /^\[[A-Za-z]\]/.test(t.trim()); // Catch alpha just to style them right, even if we prefer numbers
+const isNumberedRef = t => /^\[\d+\]/.test(t.trim()) || /^\[[A-Za-z]\]/.test(t.trim());
 const isNumberedRefDot = t => /^\d+\.\s+[A-Z]/.test(t.trim());
 
 // ─── Parse document ───────────────────────────────────────────────────────────
@@ -112,7 +111,6 @@ const renderBodyLines = (lines, style, onSectionImprove, isDark) => {
     return result;
 };
 
-// ─── Section Wrapper with hover Improve buttons ───────────────────────────────
 const IMPROVE_ACTIONS = [
     { key: 'clarity', label: 'Improve Clarity' },
     { key: 'results', label: 'Add Experimental Results' },
@@ -140,10 +138,7 @@ const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, 
                             <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: style.refSize || '8pt', border: '1px solid #eee' }}>
                                 <tbody>
                                     {rows.map((row, rIdx) => {
-                                        const cols = row.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1 || (i === 0 && c === '' ? false : true) && (i === a.length - 1 && c === '' ? false : true));
-                                        // Simpler robust split:
                                         const cleanCols = row.split('|').filter(c => c.trim() !== '' || row.indexOf('|' + c + '|') !== -1).map(c => c.trim()).filter((c, i, a) => !(i === 0 && c === '') && !(i === a.length - 1 && c === ''));
-
                                         return (
                                             <tr key={rIdx} style={{ borderBottom: '1px solid #eee', background: rIdx === 0 ? '#f9fafb' : 'transparent' }}>
                                                 {cleanCols.map((col, cIdx) => (
@@ -193,76 +188,53 @@ const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, 
 
     return (
         <div style={{ position: 'relative' }} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
-            {/* Section header */}
             {sectionHeader && <div style={style.h2Style}>{cleanMd(sectionHeader)}</div>}
-
-            {/* Rendered lines (including tables) */}
             {renderLines()}
-
-            {/* Hover improve toolbar */}
             {hovered && !improving && sectionHeader && !customPromptOpen && (
-                <div className={`absolute top-0 right-0 p-1 flex flex-col gap-0.5 z-10 rounded-lg shadow-lg ${isDark ? 'bg-[#1a1a2e] border border-[#38bdf8] shadow-[0_4px_20px_rgba(56,189,248,0.4)]' : 'bg-white border border-transparent shadow-[0_0_30px_rgba(56,189,248,0.2)]'}`}>
+                <div className={`absolute top-0 right-0 p-1.5 flex flex-col gap-1 z-[100] rounded-2xl shadow-xl border overflow-hidden ${isDark ? 'bg-[#0a0a0a] border-white/10' : 'bg-white border-black/5 shadow-2xl shadow-black/10'}`}>
                     {IMPROVE_ACTIONS.map(a => (
                         <button
                             key={a.key}
                             onClick={() => { setImproving(true); onImprove(text, a.key, setImproving); }}
-                            className={`px-3 py-1.5 rounded-md text-[11px] font-bold text-left whitespace-nowrap transition-all ${isDark ? 'text-[#d1d5db] hover:bg-[#38bdf8]/10 hover:text-white border border-transparent' : 'bg-white text-black hover:bg-blue-50 hover:text-blue-600 hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}
+                            className={`px-3 py-2 rounded-2xl text-[11px] font-bold text-left whitespace-nowrap transition-all duration-300 border border-transparent ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/5 hover:border-white/5' : 'text-gray-600 hover:bg-[#38bdf8]/10 hover:text-[#0284c7] hover:border-[#38bdf8]'}`}
                         >
                             {a.label}
                         </button>
                     ))}
                     <button
                         onClick={() => setCustomPromptOpen(true)}
-                        className={`px-3 py-1.5 rounded-md text-[11px] font-bold text-left whitespace-nowrap transition-all ${isDark ? 'text-white hover:bg-[#38bdf8]/20' : 'bg-white text-black hover:bg-blue-50 hover:text-blue-600 hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}
+                        className={`px-3 py-2 rounded-2xl text-[11px] font-bold text-left whitespace-nowrap transition-all duration-300 border border-transparent ${isDark ? 'text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 hover:border-cyan-500/30' : 'text-[#0284c7] bg-[#e0f2fe] hover:bg-[#38bdf8]/20 hover:border-[#38bdf8]'}`}
                     >
                         ✨ Change with AI...
                     </button>
                 </div>
+
+
             )}
             {customPromptOpen && !improving && (
-                <div className={`absolute top-0 right-0 p-2 z-10 rounded-lg shadow-lg flex flex-col gap-2 ${isDark ? 'bg-[#1a1a2e] border border-[#38bdf8] shadow-[0_4px_20px_rgba(56,189,248,0.4)]' : 'bg-white border border-blue-200 shadow-[0_0_30px_rgba(56,189,248,0.2)]'}`}>
-                    <div className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-[#38bdf8]' : 'text-blue-600'}`}>✨ Change with AI</div>
+                <div className={`absolute top-0 right-0 p-3 z-10 rounded-2xl shadow-2xl flex flex-col gap-3 border ${isDark ? 'bg-black border-white/10' : 'bg-white border-black/5 shadow-2xl shadow-black/10'}`}>
                     <input
-                        type="text"
-                        autoFocus
-                        value={customPrompt}
-                        onChange={e => setCustomPrompt(e.target.value)}
+                        type="text" autoFocus value={customPrompt} onChange={e => setCustomPrompt(e.target.value)}
                         placeholder="E.g. Make it more formal..."
-                        className={`text-[11px] px-2 py-1.5 rounded outline-none w-52 ${isDark ? 'bg-black text-white border border-white/20 focus:border-[#38bdf8]' : 'bg-gray-50 border border-gray-200 focus:border-blue-400'}`}
+                        className={`text-[11px] px-3 py-2.5 rounded-2xl outline-none w-56 transition-all duration-300 border ${isDark ? 'bg-white/5 text-white border-white/10 focus:border-cyan-500/50' : 'bg-gray-50 border-gray-200 focus:border-[#38bdf8]'}`}
                         onKeyDown={e => {
-                            if (e.key === 'Enter' && customPrompt.trim()) {
-                                setImproving(true);
-                                onImprove(text, `custom:${customPrompt}`, setImproving);
-                                setCustomPromptOpen(false);
-                                setCustomPrompt('');
-                            }
+                            if (e.key === 'Enter' && customPrompt.trim()) { setImproving(true); onImprove(text, `custom:${customPrompt}`, setImproving); setCustomPromptOpen(false); setCustomPrompt(''); }
                             if (e.key === 'Escape') setCustomPromptOpen(false);
                         }}
                     />
-                    <div className="flex gap-1.5">
-                        <button
-                            disabled={!customPrompt.trim()}
-                            onClick={() => {
-                                if (!customPrompt.trim()) return;
-                                setImproving(true);
-                                onImprove(text, `custom:${customPrompt}`, setImproving);
-                                setCustomPromptOpen(false);
-                                setCustomPrompt('');
-                            }}
-                            className={`flex-1 text-[11px] py-1 rounded font-bold transition-all disabled:opacity-40 ${isDark ? 'bg-[#38bdf8] text-black hover:bg-blue-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-                        >
-                            Apply
-                        </button>
-                        <button onClick={() => setCustomPromptOpen(false)} className={`px-2 py-1 text-[11px] rounded ${isDark ? 'text-gray-400 hover:text-white bg-white/5' : 'text-gray-500 hover:text-black bg-gray-100'}`}>✕</button>
+                    <div className="flex gap-2">
+                        <button onClick={() => { if (!customPrompt.trim()) return; setImproving(true); onImprove(text, `custom:${customPrompt}`, setImproving); setCustomPromptOpen(false); setCustomPrompt(''); }} className={`flex-1 text-[11px] py-2 rounded-2xl font-bold transition-all duration-300 ${isDark ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-[#e0f2fe] text-[#0284c7] border border-[#38bdf8] shadow-[0_0_15px_rgba(56,189,248,0.15)]'}`}>Apply Change</button>
+                        <button onClick={() => setCustomPromptOpen(false)} className={`px-3 py-2 rounded-2xl font-bold transition-all duration-300 ${isDark ? 'text-gray-400 bg-white/5 border border-transparent hover:border-white/10' : 'text-gray-500 bg-gray-100 border border-transparent hover:border-gray-200'}`}>✕</button>
                     </div>
                 </div>
+
+
             )}
-            {improving && <div className={`absolute top-1 right-1 text-[10px] px-2 py-1 rounded font-bold ${isDark ? 'text-[#38bdf8] bg-[#1a1a2e]' : 'text-blue-600 bg-white border border-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.3)]'}`}>✨ Improving...</div>}
+            {improving && <div className={`absolute top-1 right-1 text-[10px] px-2 py-1 rounded font-bold ${isDark ? 'text-[#38bdf8] bg-[#1a1a2e]' : 'text-blue-600 bg-white border border-[#38bdf8]'}`}>✨ Improving...</div>}
         </div>
     );
 };
 
-// ─── Contributions block ───────────────────────────────────────────────────────
 const ContributionsBlock = ({ lines, isIEEE }) => {
     const bullets = lines.map(l => l.trim()).filter(l => l.startsWith('- ') || l.startsWith('* '));
     if (!bullets.length) return null;
@@ -280,7 +252,6 @@ const ContributionsBlock = ({ lines, isIEEE }) => {
     );
 };
 
-// ─── IEEE Paper ───────────────────────────────────────────────────────────────
 const IEEEPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
     const font = "'Times New Roman', Times, serif";
     const style = {
@@ -320,7 +291,6 @@ const IEEEPaper = ({ paperRef, title, abstractLines, keywordsLines, contribution
     );
 };
 
-// ─── Springer Paper ───────────────────────────────────────────────────────────
 const SpringerPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
     const headFont = "'Arial', 'Helvetica Neue', sans-serif";
     const bodyFont = "'Times New Roman', Times, serif";
@@ -361,7 +331,6 @@ const SpringerPaper = ({ paperRef, title, abstractLines, keywordsLines, contribu
     );
 };
 
-// ─── APA Paper ───────────────────────────────────────────────────────────
 const APAPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
     const font = "'Times New Roman', Times, serif";
     const style = {
@@ -389,7 +358,6 @@ const APAPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionL
     );
 };
 
-// ─── ACM Paper ───────────────────────────────────────────────────────────
 const ACMPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
     const font = "'Libertine', 'Linux Libertine', 'Times New Roman', serif";
     const headFont = "'Biolinum', 'Linux Biolinum', 'Arial', sans-serif";
@@ -418,7 +386,6 @@ const ACMPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionL
     );
 };
 
-// ─── Elsevier Paper ───────────────────────────────────────────────────────────
 const ElsevierPaper = ({ paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove, isDark }) => {
     const font = "'Times New Roman', Times, serif";
     const headFont = "Arial, sans-serif";
@@ -447,153 +414,70 @@ const ElsevierPaper = ({ paperRef, title, abstractLines, keywordsLines, contribu
     );
 };
 
-// ─── Compare Modal ────────────────────────────────────────────────────────────
 const CompareModal = ({ onClose, topic, onInsert, isDark }) => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
 
-    const fetchComparison = async () => {
-        setLoading(true); setError(null);
-        try {
-            const res = await fetch(`${API_BASE_URL}/compare`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            setResult(data);
-        } catch (e) { setError(e.message); }
-        finally { setLoading(false); }
-    };
-
     useEffect(() => {
-        fetchComparison();
-    }, []);
-
-    const renderMarkdown = (text) => {
-        if (!text) return null;
-
-        const lines = text.split('\n');
-        const elements = [];
-        let tableRows = [];
-        let inTable = false;
-
-        const flushTable = () => {
-            if (tableRows.length > 0) {
-                // Ignore the separator row `|---|---|`
-                const contentRows = tableRows.filter(r => !r.includes('---|') && !r.includes('---+') && !r.match(/^\|[-\s|]+\|$/));
-                if (contentRows.length > 0) {
-                    elements.push(
-                        <div key={`table-${elements.length}`} style={{ overflowX: 'auto', margin: '20px 0' }}>
-                            <table style={{ borderCollapse: 'collapse', width: '100%', border: '1px solid #d1d5db', fontSize: '13px', fontFamily: 'sans-serif' }}>
-                                <tbody>
-                                    {contentRows.map((rowStr, rIdx) => {
-                                        const cols = rowStr.split('|').map(c => c.trim()).filter((c, i, a) => !(i === 0 && c === '') && !(i === a.length - 1 && c === ''));
-                                        return (
-                                            <tr key={rIdx} style={{ background: rIdx === 0 ? '#f9fafb' : 'white', borderBottom: '1px solid #e5e7eb' }}>
-                                                {cols.map((col, cIdx) => {
-                                                    const cleanCol = col.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                                                    return (
-                                                        <td key={cIdx} style={{ padding: '10px 14px', borderRight: '1px solid #e5e7eb', fontWeight: rIdx === 0 ? 'bold' : 'normal', color: '#111827', verticalAlign: 'top' }} dangerouslySetInnerHTML={{ __html: cleanCol }} />
-                                                    );
-                                                })}
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    );
-                }
-                tableRows = [];
-                inTable = false;
-            }
+        const fetchComparison = async () => {
+            setLoading(true); setError(null);
+            try {
+                const res = await fetch(`${API_BASE_URL}/compare`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                setResult(data);
+            } catch (e) { setError(e.message); }
+            finally { setLoading(false); }
         };
+        fetchComparison();
+    }, [topic]);
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            // Basic check for table rows
-            if (line.startsWith('|') && line.endsWith('|')) {
-                inTable = true;
-                tableRows.push(line);
-            } else {
-                if (inTable) flushTable();
-                if (!line) {
-                    elements.push(<div key={`br-${i}`} style={{ height: '8px' }} />);
-                    continue;
-                }
+    const tableStyles = `
+        .markdown-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.85rem; }
+        .markdown-content th { background: ${isDark ? 'rgba(56,189,248,0.1)' : 'rgba(56,189,248,0.05)'}; padding: 14px 12px; text-align: left; border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}; font-weight: bold; color: ${isDark ? '#38bdf8' : '#0284c7'}; }
+        .markdown-content td { padding: 14px 12px; border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}; vertical-align: top; }
+        .markdown-content p { line-height: 1.7; margin-bottom: 1.2rem; }
+        .markdown-content h2 { font-size: 1.4rem; font-weight: 800; margin: 2rem 0 1rem; border-bottom: 2px solid rgba(56,189,248,0.3); padding-bottom: 0.6rem; color: ${isDark ? '#38bdf8' : '#1e40af'}; }
+        .markdown-content h3 { font-size: 1.1rem; font-weight: 700; margin: 1.5rem 0 0.8rem; color: ${isDark ? '#e2e8f0' : '#1e293b'}; }
+        .markdown-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.2rem; }
+        .markdown-content li { margin-bottom: 0.6rem; }
+        .markdown-content strong { color: ${isDark ? '#fff' : '#000'}; font-weight: 600; }
+    `;
 
-                const processBold = (str) => str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-                if (line.startsWith('### ')) {
-                    elements.push(<h3 key={`h3-${i}`} style={{ fontSize: '15px', fontWeight: 'bold', margin: '16px 0 8px 0', color: '#111827' }} dangerouslySetInnerHTML={{ __html: processBold(line.replace('### ', '')) }} />);
-                } else if (line.startsWith('## ')) {
-                    elements.push(<h2 key={`h2-${i}`} style={{ fontSize: '17px', fontWeight: 'bold', margin: '20px 0 10px 0', color: '#111827', borderBottom: '1px solid #e5e7eb', paddingBottom: '4px' }} dangerouslySetInnerHTML={{ __html: processBold(line.replace('## ', '')) }} />);
-                } else if (line.startsWith('# ')) {
-                    elements.push(<h1 key={`h1-${i}`} style={{ fontSize: '20px', fontWeight: 'bold', margin: '24px 0 12px 0', color: '#111827' }} dangerouslySetInnerHTML={{ __html: processBold(line.replace('# ', '')) }} />);
-                } else if (line.startsWith('- ') || line.startsWith('* ')) {
-                    elements.push(
-                        <div key={`li-${i}`} style={{ marginLeft: '16px', marginBottom: '6px', display: 'flex', gap: '8px' }}>
-                            <span style={{ color: '#4b5563' }}>•</span>
-                            <span dangerouslySetInnerHTML={{ __html: processBold(line.substring(2)) }} />
-                        </div>
-                    );
-                } else {
-                    elements.push(<p key={`p-${i}`} style={{ margin: '0 0 12px 0', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: processBold(line) }} />);
-                }
-            }
-        }
-        if (inTable) flushTable();
-        return elements;
-    };
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(8px)' }}>
-            <div className={`p-8 max-w-[900px] w-full max-h-[85vh] overflow-y-auto rounded-[20px] transition-all ${isDark ? 'bg-[#0a0a0a] border-[1.5px] border-[#38bdf8] text-white shadow-[0_0_40px_rgba(56,189,248,0.15)]' : 'bg-white border border-transparent text-black shadow-[0_0_50px_rgba(56,189,248,0.3)]'}`}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h3 className={`m-0 text-[18px] font-bold tracking-[0.02em] ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>🔍 Comparative Analysis</h3>
-                    <button onClick={onClose} className={`cursor-pointer p-2 rounded-lg flex items-center justify-center transition-all ${isDark ? 'bg-white/5 text-[#9ca3af] hover:text-white border-2 border-transparent' : 'bg-white text-gray-400 hover:text-black hover:shadow-[0_0_15px_rgba(56,189,248,0.4)] hover:bg-gray-50'}`}>
-                        <X size={20} />
-                    </button>
+        <div className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-6 backdrop-blur-sm">
+            <div className={`p-8 max-w-[900px] w-full max-h-[85vh] overflow-y-auto rounded-[20px] ${isDark ? 'bg-black border border-[#38bdf8] text-white shadow-lg' : 'bg-white border text-black shadow-xl'}`}>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className={`text-lg font-bold ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>🔍 Comparative Analysis</h3>
+                    <button onClick={onClose} className={`p-2 rounded-xl transition-all duration-300 ${isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-black/5 text-gray-500 hover:text-black'}`}><X size={20} /></button>
+
                 </div>
-
-                {!result && !loading && (
-                    <div style={{ textAlign: 'center', padding: '20px' }}>
-                        <p className={`mb-4 text-[14px] ${isDark ? 'text-[#9ca3af]' : 'text-gray-600'}`}>
-                            Pull 3–5 similar papers from ArXiv and generate a comparison paragraph + table for: <strong className={isDark ? 'text-[#d1d5db]' : 'text-black'}>"{topic}"</strong>
-                        </p>
-                        <button onClick={fetchComparison} className={`px-6 py-2.5 rounded-xl text-[14px] font-bold cursor-pointer transition-all ${isDark ? 'bg-[#38bdf8] border-none text-black hover:bg-blue-400' : 'bg-white border border-[#38bdf8] text-blue-600 shadow-[0_0_15px_rgba(56,189,248,0.4)] hover:shadow-[0_0_25px_rgba(56,189,248,0.6)] hover:-translate-y-0.5'}`}>
-                            Fetch & Compare
-                        </button>
-                    </div>
-                )}
-
-                {loading && (
-                    <div className={`text-center p-[30px] ${isDark ? 'text-[#38bdf8]' : 'text-blue-600'}`}>
-                        <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 12px' }} />
-                        <p>Searching ArXiv and generating comparison...</p>
-                    </div>
-                )}
-
-                {error && <div className={`rounded-lg p-3 mb-3 ${isDark ? 'bg-[#7f1d1d] text-[#fca5a5]' : 'bg-red-50 border-2 border-red-500 text-red-700 font-bold'}`}>❌ {error}</div>}
-
+                {loading && <div className="text-center p-8"><Loader2 className="animate-spin mx-auto mb-2" size={32} /><p>Comparing papers...</p></div>}
+                {error && <div className="bg-red-500/20 text-red-500 p-4 rounded-xl mb-4">❌ {error}</div>}
                 {result && (
-                    <div>
-                        <h4 className={`mb-3 text-[13px] uppercase tracking-[0.05em] font-bold ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>Papers Found ({result.papers.length})</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                    <div className="space-y-6">
+                        <div className="grid gap-3">
                             {result.papers.map((p, i) => (
-                                <div key={i} className={`rounded-lg p-3 ${isDark ? 'bg-[#1f1f2e] border border-[#374151]' : 'bg-white border border-transparent shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.3)]'}`}>
-                                    <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px' }}>{p.title}</div>
-                                    <div className={`text-[11px] ${isDark ? 'text-[#9ca3af]' : 'text-gray-600'}`}>{p.authors} · {p.year}</div>
-                                    {p.id && <a href={p.id} target="_blank" rel="noreferrer" className={`text-[10px] no-underline ${isDark ? 'text-[#38bdf8]' : 'text-blue-600 font-bold hover:underline'}`}>View on ArXiv ↗</a>}
+                                <div key={i} className={`p-4 rounded-xl ${isDark ? 'bg-white/5 border border-white/10' : 'bg-gray-50'}`}>
+                                    <div className="font-bold">{p.title}</div>
+                                    <div className="text-xs text-gray-500">{p.authors} · {p.year}</div>
+                                    <a href={p.id} target="_blank" rel="noreferrer" className="text-[10px] text-[#38bdf8]">View ArXiv ↗</a>
                                 </div>
                             ))}
                         </div>
-                        <h4 className={`mb-3 text-[13px] uppercase tracking-[0.05em] font-bold ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>AI-Generated Analysis</h4>
-                        <div className={`rounded-lg p-6 text-[14px] font-serif ${isDark ? 'bg-white text-[#111827] border border-[#e5e7eb] shadow-inner' : 'bg-white text-black border border-transparent shadow-inner'}`}>
-                            {renderMarkdown(result.analysis)}
+                        <style>{tableStyles}</style>
+                        <div className={`p-8 rounded-xl markdown-content ${isDark ? 'bg-[#0a0a0a] text-gray-300 border border-white/5 shadow-inner' : 'bg-gray-50 text-gray-800'}`}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {result.analysis}
+                            </ReactMarkdown>
                         </div>
+
                     </div>
                 )}
             </div>
@@ -601,104 +485,57 @@ const CompareModal = ({ onClose, topic, onInsert, isDark }) => {
     );
 };
 
-// ─── Citation Modal ────────────────────────────────────────────────────────────
 const CitationModal = ({ onClose, references, onFixRefs, isDark }) => {
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState(null);
     const [error, setError] = useState(null);
 
-    const validate = async () => {
-        setLoading(true); setError(null);
-        try {
-            const res = await fetch(`${API_BASE_URL}/citations/validate`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ references })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            setResults(data.results);
-        } catch (e) { setError(e.message); }
-        finally { setLoading(false); }
-    };
-
     useEffect(() => {
+        const validate = async () => {
+            setLoading(true); setError(null);
+            try {
+                const res = await fetch(`${API_BASE_URL}/citations/validate`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ references })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                setResults(data.results);
+            } catch (e) { setError(e.message); }
+            finally { setLoading(false); }
+        };
         validate();
-    }, []);
+    }, [references]);
 
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', backdropFilter: 'blur(8px)' }}>
-            <div className={`p-8 max-w-[900px] w-full max-h-[85vh] overflow-y-auto rounded-[20px] transition-all ${isDark ? 'bg-[#0a0a0a] border-[1.5px] border-[#38bdf8] text-white shadow-[0_0_40px_rgba(56,189,248,0.15)]' : 'bg-white border border-transparent text-black shadow-[0_0_50px_rgba(56,189,248,0.3)]'}`}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h3 className={`m-0 text-[18px] font-bold tracking-[0.02em] ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>✔ Citation Validator</h3>
-                    <button onClick={onClose} className={`cursor-pointer p-2 rounded-lg flex items-center justify-center transition-all ${isDark ? 'bg-white/5 text-[#9ca3af] hover:text-white border-2 border-transparent' : 'bg-white text-gray-400 hover:text-black hover:shadow-[0_0_15px_rgba(56,189,248,0.4)] hover:bg-gray-50'}`}>
-                        <X size={20} />
-                    </button>
+        <div className="fixed inset-0 bg-black/85 z-[100] flex items-center justify-center p-6 backdrop-blur-sm">
+            <div className={`p-8 max-w-[900px] w-full max-h-[85vh] overflow-y-auto rounded-[20px] ${isDark ? 'bg-black border border-[#38bdf8] text-white' : 'bg-white border text-black shadow-xl'}`}>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className={`text-lg font-bold ${isDark ? 'text-[#38bdf8]' : 'text-blue-700'}`}>✔ Citation Validator</h3>
+                    <button onClick={onClose} className={`p-2 rounded-xl transition-all duration-300 ${isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-black/5 text-gray-500 hover:text-black'}`}><X size={20} /></button>
+
                 </div>
-
-                {!results && !loading && (
-                    <div style={{ textAlign: 'center', padding: '20px' }}>
-                        <p className={`mb-4 text-[14px] ${isDark ? 'text-[#9ca3af]' : 'text-gray-600'}`}>
-                            Validate <strong className={isDark ? 'text-[#d1d5db]' : 'text-black'}>{references.length}</strong> references via CrossRef DOI lookup
-                        </p>
-                        <button onClick={validate} className={`px-6 py-2.5 rounded-xl text-[14px] font-bold cursor-pointer transition-all ${isDark ? 'bg-gradient-to-r from-[#059669] to-[#0d9488] border-none text-white hover:brightness-110' : 'bg-white border border-emerald-500 text-emerald-600 shadow-[0_0_15px_rgba(52,211,153,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(52,211,153,0.5)]'}`}>
-                            Validate All Citations
-                        </button>
-                    </div>
-                )}
-
-                {loading && (
-                    <div className={`text-center p-[30px] ${isDark ? 'text-[#34d399]' : 'text-emerald-600'}`}>
-                        <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 12px' }} />
-                        <p>Checking CrossRef DOI database...</p>
-                    </div>
-                )}
-
-                {error && <div className={`rounded-lg p-3 mb-3 ${isDark ? 'bg-[#7f1d1d] text-[#fca5a5]' : 'bg-red-50 border-2 border-red-500 text-red-700 font-bold'}`}>❌ {error}</div>}
-
+                {loading && <div className="text-center p-8"><Loader2 className="animate-spin mx-auto mb-2" size={32} /><p>Validating citations...</p></div>}
                 {results && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div className="space-y-3">
                         {results.map((r, i) => (
-                            <div key={i} className={`rounded-lg p-3 ${isDark ? (r.status === 'verified' ? 'bg-[#1f1f2e] border border-[#059669]' : 'bg-[#1f1f2e] border border-[#374151]') : (r.status === 'verified' ? 'bg-emerald-50 border border-emerald-500' : 'bg-white border border-transparent shadow-sm')}`}>
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                    <span style={{ fontSize: '16px', flexShrink: 0 }}>{r.status === 'verified' ? '✅' : '❌'}</span>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                            <div className={`text-[11px] ${isDark ? 'text-[#9ca3af]' : 'text-gray-700 font-medium'}`}>
-                                                [{r.index}] Original: {r.original.slice(0, 60)}{r.original.length > 60 ? '...' : ''}
-                                            </div>
-                                            {r.scholarStatus && (
-                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${isDark ? (r.scholarStatus.includes('Scholar') ? 'bg-[#065f46] text-[#d1d5db]' : 'bg-[#374151] text-[#d1d5db]') : (r.scholarStatus.includes('Scholar') ? 'bg-emerald-200 text-emerald-800' : 'bg-gray-200 text-gray-800')}`}>
-                                                    {r.scholarStatus}
-                                                </span>
-                                            )}
-                                        </div>
-                                        {r.status === 'verified' && (
-                                            <>
-                                                <div className={`text-[12px] mb-1 ${isDark ? 'text-[#d1d5db]' : 'text-black font-semibold'}`}>
-                                                    📋 IEEE Format: {r.formatted.slice(0, 100)}{r.formatted.length > 100 ? '...' : ''}
-                                                </div>
-                                                {r.doi && (
-                                                    <a href={r.doi} target="_blank" rel="noreferrer" className={`text-[11px] no-underline font-bold hover:underline ${isDark ? 'text-[#059669]' : 'text-emerald-700'}`}>
-                                                        🔗 DOI: {r.doi}
-                                                    </a>
-                                                )}
-                                            </>
-                                        )}
-                                        {r.status === 'unverified' && (
-                                            <div className="text-[11px] text-red-500 font-bold">Could not verify via CrossRef</div>
-                                        )}
+                            <div key={i} className={`p-4 rounded-xl border ${r.status === 'verified' ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-white/10 bg-white/5'}`}>
+                                <div className="flex gap-3">
+                                    <span>{r.status === 'verified' ? '✅' : '❌'}</span>
+                                    <div>
+                                        <div className="text-[11px] text-gray-500">[{r.index}] {r.original.slice(0, 100)}...</div>
+                                        {r.status === 'verified' && <div className="text-sm font-bold mt-1">Verified: {r.formatted}</div>}
                                     </div>
                                 </div>
                             </div>
                         ))}
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                            <button onClick={validate} className={`flex-1 px-4 py-2.5 rounded-xl text-[12px] font-bold cursor-pointer transition-all ${isDark ? 'bg-transparent border border-[#059669] text-[#34d399] hover:bg-[#059669]/10' : 'bg-white border border-transparent text-black shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
-                                🔄 Re-validate
-                            </button>
-                            <button onClick={() => onFixRefs(results.filter(r => r.status === 'verified').map(r => ({ old: r.original, new: `[${r.index}] ${r.formatted}` })))} className={`flex-1 px-4 py-2.5 rounded-xl text-[12px] font-bold cursor-pointer transition-all ${isDark ? 'bg-gradient-to-r from-[#059669] to-[#0d9488] border-none text-white hover:brightness-110' : 'bg-white border border-emerald-500 text-emerald-600 shadow-[0_0_15px_rgba(52,211,153,0.3)] hover:-translate-y-1 hover:shadow-[0_0_20px_rgba(52,211,153,0.5)]'}`}>
-                                🔧 Fix All References
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => onFixRefs(results.filter(r => r.status === 'verified').map(r => ({ old: r.original, new: `[${r.index}] ${r.formatted}` })))}
+                            className={`w-full py-3 rounded-2xl font-bold mt-4 transition-all duration-300 ${isDark ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-[#e0f2fe] text-[#0284c7] border border-[#38bdf8] shadow-[0_0_15px_rgba(56,189,248,0.2)]'}`}
+                        >
+                            Apply Verified Fixes
+                        </button>
+
                     </div>
                 )}
             </div>
@@ -706,9 +543,6 @@ const CitationModal = ({ onClose, references, onFixRefs, isDark }) => {
     );
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ═════════════════════════════════════════════════════════════════════════════
 const PaperDrafter = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -717,102 +551,178 @@ const PaperDrafter = () => {
     const [loading, setLoading] = useState(false);
     const [generatedDraft, setGeneratedDraft] = useState('');
     const [topic, setTopic] = useState(location.state?.topic || '');
-    const [template, setTemplate] = useState('IEEE Journal');
+    const [template, setTemplate] = useState('ieee');
+    const [type, setType] = useState('journal');
     const [instructions, setInstructions] = useState(location.state?.instructions || '');
     const [showCompare, setShowCompare] = useState(false);
     const [showCitations, setShowCitations] = useState(false);
     const [refiningContributions, setRefiningContributions] = useState(false);
     const [showImproveOptions, setShowImproveOptions] = useState(true);
+    const [loadingPhase, setLoadingPhase] = useState('');
+    const [workflowStep, setWorkflowStep] = useState('idle');
 
-    const user = JSON.parse(localStorage.getItem('user')) || { username: 'Researcher', email: 'user@example.com' };
+    // Auto-switch type if blocked by template
+    useEffect(() => {
+        if ((template === 'apa style' || template === 'elsevier') && type === 'journal') {
+            setType('conference');
+        }
+    }, [template, type]);
 
+
+    // Extraction states for sequential feed
+    const [referencesList, setReferencesList] = useState([]);
+    const [selectedRefIndices, setSelectedRefIndices] = useState(new Set([0, 1, 2, 3, 4]));
+    const [extractedProposedSolution, setExtractedProposedSolution] = useState('');
+    const [extractedRelatedWork, setExtractedRelatedWork] = useState('');
+    const [extractedAbstract, setExtractedAbstract] = useState('');
+
+    const user = JSON.parse(localStorage.getItem('user')) || { username: 'Researcher', id: '123' };
     const theme = localStorage.getItem('theme') || 'dark';
     const isDark = theme === 'dark';
+    const isIEEE = template === 'ieee';
+    const isConference = type === 'conference';
 
-    const isIEEE = template.startsWith('IEEE');
-    const isConference = template.includes('Conference');
+    const activeBtnClass = isDark
+        ? 'bg-cyan-500/20 text-[#38bdf8] border-white/10 shadow-[0_0_20px_rgba(56,189,248,0.4)]'
+        : 'bg-white text-[#0284c7] border-black/5 shadow-[0_0_15px_rgba(56,189,248,0.3)]';
 
-    // ── Extract references from draft ──────────────────────────────────────
+    const inactiveBtnClass = isDark
+        ? 'bg-white/5 text-gray-400 border border-transparent hover:text-white hover:bg-white/10 hover:shadow-[0_0_20px_rgba(56,189,248,0.3)]'
+        : 'bg-white text-gray-600 border border-gray-100 shadow-sm hover:text-[#0284c7] hover:shadow-[0_0_20px_rgba(56,189,248,0.3)]';
+
+
+
+
     const extractReferences = () => {
         if (!generatedDraft) return [];
         return generatedDraft.split('\n').filter(l => /^\[\d+\]/.test(l.trim()) || (/^\d+\.\s/.test(l.trim()) && l.trim().length > 40)).map(l => l.trim());
     };
-    // ── Convert Draft to HTML for DocSpace ──────────────────────────────────
+
     const convertToHTML = (draft, topic, template) => {
         const { title, abstractLines, keywordsLines, contributionLines, bodyLines } = parseDocument(draft, topic);
         const authorName = user.username || 'Researcher';
-        const isIEEE = template.includes('IEEE');
-
-        let html = `<h1 class="paper-title" style="text-align: center; column-span: all; font-size: 24pt; font-weight: normal; margin-bottom: 15pt;">${title}</h1>`;
-
-        html += `
-            <div class="authors-block" style="text-align: center; column-span: all; margin-bottom: 20pt; display: flex; justify-content: center; gap: 40px;">
-                <div style="text-align: center;">
-                    <p style="font-style: italic; margin-bottom: 0;">${authorName}</p>
-                    <p style="font-size: 10pt; margin-top: 0;">Clarion AI System</p>
-                </div>
-                <div style="text-align: center;">
-                    <p style="font-style: italic; margin-bottom: 0;">Co-Author</p>
-                    <p style="font-size: 10pt; margin-top: 0;">Clarion AI System</p>
-                </div>
-            </div>
-            `;
-
-        if (abstractLines.length > 0) {
-            html += `<p class="abstract-section" style="column-span: all; text-align: justify; font-size: 10pt; line-height: 1.3;">
-                <strong><em>Abstract—</em></strong> ${abstractLines.join(' ')}
-            </p>`;
-        }
-
-        if (keywordsLines.length > 0) {
-            html += `<p class="keywords-section" style="column-span: all; text-align: justify; font-size: 10pt; line-height: 1.3; margin-bottom: 12pt;">
-                <strong><em>Index Terms—</em></strong> ${keywordsLines.join(', ')}
-            </p>`;
-        }
-
-        if (contributionLines.length > 0) {
-            html += `<div class="contributions-block" style="column-span: all; margin-bottom: 12pt; font-size: 10pt;">
-                        <strong>Contributions of This Work:</strong>
-                        <ul style="margin-top: 5pt;">
-                            ${contributionLines.map(l => {
-                const clean = cleanMd(l.replace(/^[-*]\s+/, ''));
-                return clean ? `<li style="margin-bottom: 2pt;">${clean}</li>` : '';
-            }).join('')}
-                        </ul>
-                    </div>`;
-        }
-
-        html += `<hr style="column-span: all; border: none; border-top: 1px solid #aaa; margin: 15pt 0;" />`;
-
+        let html = `<h1 style="text-align: center; font-size: 24pt;">${title}</h1>`;
+        html += `<div style="text-align: center; margin-bottom: 20pt;"><p>${authorName}</p><p>Clarion AI System</p></div>`;
+        if (abstractLines.length > 0) html += `<p><strong><em>Abstract—</em></strong> ${abstractLines.join(' ')}</p>`;
+        if (keywordsLines.length > 0) html += `<p><strong><em>Index Terms—</em></strong> ${keywordsLines.join(', ')}</p>`;
         bodyLines.forEach(line => {
             const t = line.trim();
-            if (!t) return;
-
-            if (isSectionHeader(t)) {
-                html += `<h2 style="text-align: center; text-transform: uppercase; font-size: 11pt; margin-top: 15pt; margin-bottom: 8pt;">${cleanMd(t)}</h2>`;
-            } else if (t.startsWith('### ')) {
-                html += `<h3 style="font-style: italic; font-size: 10pt; margin-top: 10pt; margin-bottom: 4pt;">${cleanMd(t)}</h3>`;
-            } else if (isListItem(t)) {
-                html += `<ul style="margin-bottom: 6pt;"><li>${cleanMd(t.replace(/^[-*]\s+/, ''))}</li></ul>`;
-            } else {
-                html += `<p style="text-indent: 18pt; text-align: justify; margin-bottom: 6pt; font-size: 10pt;">${cleanMd(t)}</p>`;
-            }
+            if (isSectionHeader(t)) html += `<h2 style="text-align: center; text-transform: uppercase;">${cleanMd(t)}</h2>`;
+            else html += `<p style="text-indent: 18pt; text-align: justify;">${cleanMd(t)}</p>`;
         });
-
         return html;
     };
 
-    // ── Generate draft ─────────────────────────────────────────────────────
     const handleGenerate = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         if (!topic.trim()) return;
         setLoading(true); setGeneratedDraft('');
+        setReferencesList([]); setExtractedProposedSolution(''); setExtractedRelatedWork(''); setExtractedAbstract('');
+
         try {
+            setLoadingPhase('collecting_references');
+            setWorkflowStep('selecting_references');
+
+            const refsRes = await fetch(`${API_BASE_URL}/draft/extract-references`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic })
+            });
+            if (refsRes.ok) {
+                const refsData = await refsRes.json();
+                const refs = refsData.content || [];
+                setReferencesList(refs);
+                setSelectedRefIndices(new Set());
+
+            } else {
+                throw new Error('Failed to fetch references. Status: ' + refsRes.status);
+            }
+        } catch (err) { alert('Could not fetch references: ' + err.message); }
+        finally { setLoading(false); setLoadingPhase(''); }
+    };
+
+    const handleExtractProposedSolution = async () => {
+        setLoading(true);
+        setWorkflowStep('reviewing_proposed_solution');
+
+        const selectedCitations = referencesList.filter((_, i) => selectedRefIndices.has(i)).join('\n');
+
+        try {
+            // STEP 2: Proposed Solution
+            setLoadingPhase('getting_proposed_solution');
+            let psText = "";
+            try {
+                const psRes = await fetch(`${API_BASE_URL}/draft/extract-proposed-solution`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, citation: selectedCitations })
+                });
+                if (psRes.ok) {
+                    const psData = await psRes.json();
+                    psText = psData.content;
+                    setExtractedProposedSolution(psText);
+                }
+            } catch (err) { console.error("PS extraction failed", err); }
+        } catch (err) { alert('Extraction error: ' + err.message); }
+        finally { setLoading(false); setLoadingPhase(''); }
+    };
+
+    const handleExtractRelatedWorkAndAbstract = async () => {
+        setLoading(true);
+        setWorkflowStep('reviewing_related_work_abstract');
+
+        const selectedCitations = referencesList.filter((_, i) => selectedRefIndices.has(i)).join('\n');
+
+        try {
+            // STEP 3: Related Work Extraction
+            setLoadingPhase('getting_related_work');
+            let rwText = "";
+            try {
+                const rwRes = await fetch(`${API_BASE_URL}/draft/extract-related-work`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, citation: selectedCitations })
+                });
+                if (rwRes.ok) {
+                    const rwData = await rwRes.json();
+                    rwText = rwData.content;
+                    setExtractedRelatedWork(rwText);
+                }
+            } catch (err) { console.error("RW extraction failed", err); }
+            await new Promise(r => setTimeout(r, 1000));
+
+            // STEP 4: Abstract Extraction
+            setLoadingPhase('getting_abstract');
+            let absText = "";
+            try {
+                const absRes = await fetch(`${API_BASE_URL}/draft/extract-abstract`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic, citation: selectedCitations })
+                });
+                if (absRes.ok) {
+                    const absData = await absRes.json();
+                    absText = absData.content;
+                    setExtractedAbstract(absText);
+                }
+            } catch (err) { console.error("Abstract extraction failed", err); }
+
+        } catch (err) { alert('Extraction error: ' + err.message); }
+        finally { setLoading(false); setLoadingPhase(''); }
+    };
+
+    const handleFinalDraft = async () => {
+        setLoading(true);
+        setWorkflowStep('drafting');
+        setLoadingPhase('drafting');
+
+        const selectedCitations = referencesList.filter((_, i) => selectedRefIndices.has(i)).join('\n');
+
+        try {
+            const finalInstructions = `${instructions}\n\nPRIMARY REFERENCES:\n${selectedCitations}\n\nUSE THIS PROPOSED SOLUTION AS BASE:\n${extractedProposedSolution}\n\nUSE THIS EXTRACTED RELATED WORK AS BASE:\n${extractedRelatedWork}\n\nUSE THIS EXTRACTED ABSTRACT AS BASE:\n${extractedAbstract}`;
+
             const response = await fetch(`${API_BASE_URL}/draft/generate`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic, template, type: isConference ? 'Conference' : 'Journal', additionalInstructions: instructions })
+                body: JSON.stringify({ topic, template, type, additionalInstructions: finalInstructions })
             });
-            if (!response.ok) throw new Error('Failed to start generation');
+
+            if (!response.ok) throw new Error('Generation failed');
             const reader = response.body.getReader(), decoder = new TextDecoder();
             let fullText = '';
             while (true) {
@@ -822,12 +732,10 @@ const PaperDrafter = () => {
                 setGeneratedDraft(fullText);
                 if (fullText.length > 0) setLoading(false);
             }
-        } catch (err) {
-            alert('Failed to generate draft. Please check your connection and API key.');
-        } finally { setLoading(false); }
+        } catch (err) { alert('Generation error: ' + err.message); }
+        finally { setLoading(false); setLoadingPhase(''); setWorkflowStep('done'); }
     };
 
-    // ── Improve a section (streaming) ──────────────────────────────────────
     const handleSectionImprove = async (sectionText, action, setImproving) => {
         try {
             const response = await fetch(`${API_BASE_URL}/improve`, {
@@ -842,333 +750,273 @@ const PaperDrafter = () => {
                 if (done) break;
                 improvedText += decoder.decode(value, { stream: true });
             }
-            // If it's refining contributions, replace the old contributions section
-            if (action === 'refineContributions') {
-                setGeneratedDraft(prev => {
-                    const lines = prev.split('\n');
-                    const startIdx = lines.findIndex(l => isContributionsLine(l));
-                    if (startIdx !== -1) {
-                        // Find the end of keywords/contributions section (next section header or end of list)
-                        let endIdx = lines.findIndex((l, i) => i > startIdx && (isSectionHeader(l) || (isAbstractLine(l) && !isKeywordsLine(l))));
-                        if (endIdx === -1) endIdx = lines.length;
-
-                        const newLines = [...lines];
-                        newLines.splice(startIdx + 1, endIdx - startIdx - 1, improvedText);
-                        return newLines.join('\n');
-                    } else {
-                        // Injection fallback if no header exists
-                        const abstractIdx = lines.findLastIndex(l => isAbstractLine(l));
-                        if (abstractIdx !== -1) {
-                            let endOfAbstract = lines.findIndex((l, i) => i > abstractIdx && (isKeywordsLine(l) || isSectionHeader(l)));
-                            if (endOfAbstract === -1) endOfAbstract = abstractIdx + 1;
-                            const newLines = [...lines];
-                            newLines.splice(endOfAbstract, 0, '\n## CONTRIBUTIONS OF THIS WORK:', improvedText);
-                            return newLines.join('\n');
-                        }
-                    }
-                    return prev + '\n\n## CONTRIBUTIONS OF THIS WORK:\n' + improvedText;
-                });
-            } else {
-                // For general sections, try to be more precise than a simple string replace
-                setGeneratedDraft(prev => {
-                    // Safety check: if the sectionText exactly exists, use it
-                    if (prev.includes(sectionText)) {
-                        return prev.replace(sectionText, improvedText);
-                    }
-                    // Otherwise, try to replace based on the header if we can find it
-                    return prev.replace(sectionText.trim(), improvedText.trim());
-                });
-            }
-        } catch (err) {
-            alert('Section improvement failed: ' + err.message);
-        } finally { if (setImproving) setImproving(false); }
+            setGeneratedDraft(prev => prev.replace(sectionText.trim(), improvedText.trim()));
+        } catch (err) { alert(err.message); }
+        finally { if (setImproving) setImproving(false); }
     };
-
-    const handleRefineContributions = () => {
-        const { abstractLines, contributionLines, bodyLines } = parseDocument(generatedDraft, topic);
-        const introText = bodyLines.slice(0, 50).join('\n'); // Take first part of body as intro
-        const context = `ABSTRACT:\n${abstractLines.join(' ')}\n\nINTRODUCTION/BODY:\n${introText}`;
-        setRefiningContributions(true);
-        handleSectionImprove(context, 'refineContributions', setRefiningContributions);
-    };
-
-    const handleDownloadPDF = () => {
-        html2pdf().set({
-            margin: 0, filename: `${topic.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-        }).from(paperRef.current).save();
-    };
-
-    const handleSaveToWorkspace = async () => {
-        if (!generatedDraft) return;
-        setLoading(true);
-
-        try {
-            const { title } = parseDocument(generatedDraft, topic);
-
-            // Generate structured HTML that Quill can understand and render nicely
-            const contentToSave = convertToHTML(generatedDraft, topic, template);
-
-            const response = await fetch(`${API_BASE_URL}/papers/write`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: user.id || user._id,
-                    title: title || topic || 'Untitled Draft',
-                    domain: 'Other',
-                    content: contentToSave,
-                    template: template,
-                    source: 'written'
-                })
-            });
-
-            if (!response.ok) throw new Error('Failed to save paper');
-            const data = await response.json();
-
-            alert('Draft converted and sent to DocSpace!');
-            navigate('/docspace', { state: { paperId: data.paper._id } });
-        } catch (err) {
-            alert('Failed to save paper: ' + err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleLogout = () => { localStorage.removeItem('token'); localStorage.removeItem('user'); navigate('/login'); };
 
     const renderPaper = () => {
         if (!generatedDraft) return null;
         const { title, abstractLines, keywordsLines, contributionLines, bodyLines } = parseDocument(generatedDraft, topic);
-        const commonProps = { paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove: showImproveOptions ? handleSectionImprove : null, isDark };
-        return isIEEE ? <IEEEPaper {...commonProps} /> : <SpringerPaper {...commonProps} />;
+        const props = { paperRef, title, abstractLines, keywordsLines, contributionLines, bodyLines, user, isConference, onSectionImprove: showImproveOptions ? handleSectionImprove : null, isDark };
+        if (template === 'ieee') return <IEEEPaper {...props} />;
+        if (template === 'springer') return <SpringerPaper {...props} />;
+        if (template === 'apa style') return <APAPaper {...props} />;
+        if (template === 'acm') return <ACMPaper {...props} />;
+        return <ElsevierPaper {...props} />;
+    };
+
+    const handleDownloadPDF = () => {
+        html2pdf().from(paperRef.current).save(`${topic.replace(/\s+/g, '_')}.pdf`);
+    };
+
+    const handleSaveToWorkspace = async () => {
+        setLoading(true);
+        try {
+            const content = convertToHTML(generatedDraft, topic, template);
+            await fetch(`${API_BASE_URL}/papers/write`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id || user._id, title: topic, domain: 'Research', content, template, source: 'written' })
+            });
+            alert('Saved to DocSpace!');
+            navigate('/docspace');
+        } catch (err) { alert(err.message); }
+        finally { setLoading(false); }
     };
 
     const refs = extractReferences();
 
     return (
-        <div className={`flex h-screen font-sans overflow-hidden ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8fafc] text-black'}`}>
-            {/* Sidebar */}
-            <AppSidebar isOpen={isSidebarOpen} activePage="draft" isDark={isDark} onClose={() => setIsSidebarOpen(false)} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <div className={`flex h-screen overflow-hidden ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-[#f8fafc] text-black'}`}>
+            <AppSidebar activePage="draft" isDark={isDark} isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-            {/* Main */}
-            <main className={`flex-1 flex flex-col relative overflow-hidden ${isDark ? 'bg-black' : 'bg-[#f8fafc]'}`}>
-                <header className={`z-20 h-16 flex items-center justify-between px-8 border-b ${isDark ? 'bg-black/40 border-white/5 text-white' : 'bg-white/40 border-[#38bdf8]/20 text-black backdrop-blur-md'}`}>
-                    <div className="flex items-center gap-4">
-                        
-                        <h2 className="text-xl font-semibold">Paper Drafting</h2>
-                    </div>
+            <main className="flex-1 flex flex-col overflow-hidden">
+                <header className={`h-16 flex items-center justify-between px-8 border-b ${isDark ? 'bg-black border-white/5' : 'bg-white border-[#38bdf8]/20'}`}>
+                    <h2 className="text-xl font-semibold">Paper Drafter</h2>
                 </header>
 
-                <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-                    {/* Config Panel */}
-                    <div className={`w-full lg:w-[360px] border-r overflow-y-auto p-6 scrollbar-hide ${isDark ? 'border-white/5 bg-[#0f0f0f]' : 'border-[#38bdf8]/20 bg-white'}`}>
-                        <div className="space-y-6">
+                <div className="flex-1 flex overflow-hidden">
+                    {/* Left Panel: Config */}
+                    <div className={`w-[360px] border-r overflow-y-auto p-6 space-y-6 ${isDark ? 'bg-[#0f0f0f] border-white/5' : 'bg-white border-[#38bdf8]/20'}`}>
+                        <form onSubmit={handleGenerate} className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-gray-500 uppercase">Research Topic</label>
+                                <input 
+                                    type="text" value={topic} onChange={e => setTopic(e.target.value)} required 
+                                    placeholder="e.g. AI in Healthcare" 
+                                    className={`w-full h-14 px-4 rounded-2xl outline-none border transition-all duration-300 ${
+                                        isDark 
+                                        ? 'bg-black/50 border-white/10 text-white focus:border-white/20 shadow-[0_0_15px_rgba(56,189,248,0.2)]' 
+                                        : 'bg-white border-black/5 text-black focus:border-[#38bdf8]/20 shadow-[0_0_12px_rgba(56,189,248,0.15)]'
+                                    }`} 
+                                />
 
 
-                            <form onSubmit={handleGenerate} className="space-y-5">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Research Topic</label>
-                                    <input
-                                        type="text"
-                                        value={topic}
-                                        onChange={e => setTopic(e.target.value)}
-                                        placeholder="Enter the core research subject..."
-                                        className={`w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all ${isDark ? 'bg-black/50 text-white placeholder-gray-500 border border-[#38bdf8]/30 focus:border-[#38bdf8]' : 'bg-white text-black placeholder-gray-400 border border-transparent shadow-[0_0_10px_rgba(56,189,248,0.1)] focus:shadow-[0_0_20px_rgba(56,189,248,0.4)] focus:outline-none'}`}
-                                        style={!isDark ? {} : { border: '1.5px solid rgba(56,189,248,0.25)' }}
-                                        required
-                                    />
-                                </div>
 
-                                {/* ── Template Dropdown ── */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Template</label>
-                                    <div className="relative">
-                                        <select
-                                            value={template.split(' ')[0]}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                const type = (val === 'APA' || val === 'Elsevier') ? 'Journal' : (template.includes('Conference') ? 'Conference' : 'Journal');
-                                                setTemplate(`${val} ${type}`);
-                                            }}
-                                            className={`appearance-none w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all cursor-pointer ${isDark ? 'bg-black/50 text-white border border-[#38bdf8]/30 focus:border-[#38bdf8]' : 'bg-white text-black border border-transparent shadow-[0_0_10px_rgba(56,189,248,0.1)] focus:shadow-[0_0_20px_rgba(56,189,248,0.4)]'}`} style={!isDark ? {} : { border: '1.5px solid rgba(56,189,248,0.25)' }}
-                                        >
-                                            <option value="IEEE">IEEE</option>
-                                            <option value="Springer">Springer</option>
-                                            <option value="APA">APA Style</option>
-                                            <option value="ACM">ACM</option>
-                                            <option value="Elsevier">Elsevier</option>
-                                        </select>
-                                        <ChevronDown size={16} className={`absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-gray-400' : 'text-[#0284c7]'}`} />
-                                    </div>
-                                </div>
-
-                                {/* ── Type Row ── */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Type</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {['Journal', 'Conference'].map(label => {
-                                            const brand = template.split(' ')[0];
-                                            const active = template.includes(label);
-                                            const isDisabled = label === 'Conference' && (brand === 'APA' || brand === 'Elsevier');
-
-                                            const activeClass = active ? (isDark ? 'bg-black/50 border border-[#38bdf8] text-white' : 'bg-white border-transparent text-black shadow-[0_0_20px_rgba(56,189,248,0.4)]') : (isDark ? 'bg-black/50 border border-[#38bdf8]/30 hover:border-[#38bdf8]/60 text-gray-400' : 'bg-white border-transparent text-gray-500 shadow-[0_0_10px_rgba(56,189,248,0.1)] hover:shadow-[0_0_15px_rgba(56,189,248,0.2)]');
-
-                                            const disabledClass = isDisabled ? 'opacity-30 !cursor-not-allowed grayscale pointer-events-none' : 'cursor-pointer';
-
-                                            return (
-                                                <button
-                                                    key={label}
-                                                    type="button"
-                                                    disabled={isDisabled}
-                                                    onClick={() => setTemplate(`${brand} ${label}`)}
-                                                    className={`relative flex flex-col items-center justify-center gap-1 py-3.5 px-3 rounded-xl transition-all duration-200 border ${activeClass} ${disabledClass}`}>
-                                                    <span className="text-[11px] font-bold">{label}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Additional Instructions</label>
-                                    <textarea
-                                        value={instructions}
-                                        onChange={e => setInstructions(e.target.value)}
-                                        placeholder="e.g. Focus on experimental results..."
-                                        rows="3"
-                                        className={`w-full rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all resize-none ${isDark ? 'bg-black/50 text-white placeholder-gray-500 border border-[#38bdf8]/30 focus:border-[#38bdf8]' : 'bg-white text-black placeholder-gray-400 border border-transparent shadow-[0_0_10px_rgba(56,189,248,0.1)] focus:shadow-[0_0_20px_rgba(56,189,248,0.4)] focus:outline-none'}`}
-                                        style={!isDark ? {} : { border: '1.5px solid rgba(56,189,248,0.25)' }}
-                                    />
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 disabled:cursor-not-allowed transition-all duration-300 ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.25)] hover:shadow-[0_0_22px_rgba(56,189,248,0.55)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'}`}
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-gray-500 uppercase">Template</label>
+                                <select 
+                                    value={template} onChange={e => setTemplate(e.target.value)} 
+                                    className={`w-full h-14 px-4 rounded-2xl border outline-none transition-all duration-300 ${
+                                        isDark 
+                                        ? 'bg-black text-white border-white/10 focus:border-white/20 shadow-[0_0_15px_rgba(56,189,248,0.2)]' 
+                                        : 'bg-white text-black border-black/5 focus:border-[#38bdf8]/20 shadow-[0_0_12px_rgba(56,189,248,0.15)]'
+                                    }`}
                                 >
-                                    {loading ? <><Loader2 className="animate-spin" size={18} /> GENERATING...</> : <><Sparkles size={18} /> SYNTHESIZE DRAFT</>}
-                                </button>
-                            </form>
-
-                            {/* Action buttons after generation */}
-                            {generatedDraft && (
-                                <div className={`space-y-3 pt-4 border-t ${isDark ? 'border-white/5' : 'border-[#38bdf8]/20'}`}>
-                                    <button onClick={handleRefineContributions} disabled={refiningContributions} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 disabled:cursor-not-allowed ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.15)] hover:shadow-[0_0_18px_rgba(56,189,248,0.4)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
-                                        {refiningContributions ? <Loader2 size={14} className="animate-spin" /> : '⚡ Refine Contributions'}
-                                    </button>
-                                    <button onClick={() => setShowCompare(true)} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.15)] hover:shadow-[0_0_18px_rgba(56,189,248,0.4)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
-                                        🔍 Compare with Existing Work
-                                    </button>
-                                    <button onClick={() => setShowCitations(true)} disabled={refs.length === 0} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 disabled:cursor-not-allowed ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.15)] hover:shadow-[0_0_18px_rgba(56,189,248,0.4)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
-                                        ✔ Validate Citations {refs.length > 0 ? `(${refs.length})` : '(none found)'}
-                                    </button>
-                                    <button onClick={handleDownloadPDF} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.15)] hover:shadow-[0_0_18px_rgba(56,189,248,0.4)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]'}`}>
-                                        <Printer size={14} /> PDF Export
-                                    </button>
-                                    <button onClick={handleSaveToWorkspace} disabled={loading} className={`w-full flex items-center gap-2 py-3 px-4 rounded-xl text-xs font-bold transition-all duration-300 disabled:cursor-not-allowed ${isDark ? 'bg-black text-white border border-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.2)] hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]' : 'bg-white text-black border border-transparent hover:border-[#38bdf8]/50 hover:-translate-y-1 shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'}`}>
-                                        {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save to Workspace
-                                    </button>
-                                </div>
-                            )}
+                                    {TEMPLATES.map(t => (
+                                        <option key={t} value={t}>
+                                            {t === 'apa style' ? 'APA Style' : t.toUpperCase()}
+                                        </option>
+                                    ))}
+                                </select>
 
 
-                        </div>
-                    </div>
 
-                    {/* Paper Preview */}
-                    <div className={`flex-1 overflow-y-auto p-4 md:p-12 scrollbar-hide ${isDark ? 'bg-[#121212]' : 'bg-[#e2e8f0]'}`}>
-                        <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between">
-                            <div>
-                                <h4 className="text-xs font-black text-gray-500 uppercase tracking-widest">Document Workbench</h4>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                    <p className="text-[10px] text-gray-400">{template} · 1:1 Preview</p>
-                                    {loading && generatedDraft && (
-                                        <div className="flex items-center gap-1">
-                                            <div className="w-1 h-1 bg-[#38bdf8] rounded-full animate-bounce" />
-                                            <div className="w-1 h-1 bg-[#38bdf8] rounded-full animate-bounce [animation-delay:-0.2s]" />
-                                            <div className="w-1 h-1 bg-[#38bdf8] rounded-full animate-bounce [animation-delay:-0.4s]" />
-                                            <span className="text-[8px] text-[#38bdf8] font-bold uppercase tracking-widest">Streaming</span>
-                                        </div>
-                                    )}
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-gray-500 uppercase">Type</label>
+                                <div className="flex gap-2">
+                                    {TYPES.map(t => {
+                                        const isBlocked = t === 'journal' && (template === 'apa style' || template === 'elsevier');
+                                        const isActive = type === t;
+                                        return (
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => setType(t)}
+                                                disabled={isBlocked}
+                                                className={`flex-1 py-3 px-4 rounded-2xl text-xs font-bold transition-all duration-300 border ${isActive ? activeBtnClass : inactiveBtnClass
+                                                    } ${isBlocked ? 'opacity-40 cursor-not-allowed grayscale' : ''}`}
+                                            >
+                                                {t.toUpperCase()}
+                                            </button>
+                                        );
+                                    })}
+
                                 </div>
                             </div>
-                            {generatedDraft && (
-                                <div className="text-[10px] text-gray-500 italic">✏️ Hover over any section to improve it</div>
-                            )}
-                        </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-gray-500 uppercase">Instructions</label>
+                                <textarea 
+                                    value={instructions} onChange={e => setInstructions(e.target.value)} rows="3" 
+                                    className={`w-full p-4 rounded-2xl border outline-none transition-all duration-300 resize-none ${
+                                        isDark 
+                                        ? 'bg-black/50 border-white/10 text-white focus:border-white/20 shadow-[0_0_15px_rgba(56,189,248,0.2)]' 
+                                        : 'bg-white border-black/5 text-black focus:border-[#38bdf8]/20 shadow-[0_0_12px_rgba(56,189,248,0.15)]'
+                                    }`} 
+                                />
 
-                        {!generatedDraft && !loading && (
-                            <div className={`max-w-[8.5in] aspect-[8.5/11] mx-auto rounded-3xl flex flex-col items-center justify-center text-center p-12 transition-colors ${isDark ? 'bg-white/5 border border-dashed border-white/10 hover:border-white/20' : 'bg-white border border-dashed border-gray-200 hover:border-[#38bdf8] hover:shadow-[0_0_30px_rgba(56,189,248,0.25)] shadow-sm'}`}>
-                                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
-                                    <FileType size={32} className={`${isDark ? 'opacity-20' : 'text-gray-400'}`} />
-                                </div>
-                                <h4 className={`text-lg font-bold mb-2 ${isDark ? 'text-gray-400' : 'text-gray-800'}`}>No Active Manuscript</h4>
-                                <p className={`text-sm max-w-sm ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>Configure your research scope and click Synthesize Draft.</p>
-                            </div>
-                        )}
 
-                        {loading && !generatedDraft && (
-                            <div className={`max-w-[8.5in] aspect-[8.5/11] mx-auto rounded-3xl p-12 flex flex-col items-center justify-center text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-transparent shadow-[0_0_40px_rgba(56,189,248,0.2)]'}`}>
-                                <div className="relative mb-8">
-                                    <div className="absolute inset-0 bg-[#38bdf8]/20 blur-3xl rounded-full scale-150 animate-pulse" />
-                                    <div className="w-24 h-24 rounded-full border-4 border-[#38bdf8]/20 border-t-[#38bdf8] animate-spin relative z-10" />
-                                </div>
-                                <h4 className="text-xl font-bold bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent mb-3">SYNTHESIZING MANUSCRIPT</h4>
-                                <p className={`text-sm max-w-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Architecting the {template} structure...</p>
                             </div>
-                        )}
+                            <button type="submit" disabled={loading} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-300 ${activeBtnClass}`}>
+                                {loading && !generatedDraft ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />} Synthesize Draft
+                            </button>
+
+                        </form>
 
                         {generatedDraft && (
-                            <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+                            <div className="pt-4 border-t border-white/5 space-y-2">
+                                <button onClick={() => setShowCompare(true)} className={`w-full p-3 rounded-2xl text-xs font-bold transition-all duration-300 ${inactiveBtnClass}`}>🔍 Research Comparison</button>
+                                <button onClick={() => setShowCitations(true)} className={`w-full p-3 rounded-2xl text-xs font-bold transition-all duration-300 ${inactiveBtnClass}`}>✔ Validate Citations</button>
+                                <button onClick={handleDownloadPDF} className={`w-full p-3 rounded-2xl text-xs font-bold transition-all duration-300 ${inactiveBtnClass}`}>Printer Export</button>
+                                <button onClick={handleSaveToWorkspace} className={`w-full p-3 rounded-2xl font-bold transition-all duration-300 ${activeBtnClass}`}>Save to Workspace</button>
+                            </div>
+
+                        )}
+                    </div>
+
+                    {/* Right Panel: Preview/Feed */}
+                    <div className={`flex-1 overflow-y-auto p-12 scrollbar-hide ${isDark ? 'bg-[#121212]' : 'bg-gray-100'}`}>
+                        {loading && !generatedDraft ? (
+                            <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-full space-y-8 animate-in fade-in duration-700">
+                                <div className="text-center space-y-4">
+                                    <div className="w-20 h-20 rounded-full border-4 border-[#38bdf8]/20 border-t-[#38bdf8] animate-spin mx-auto" />
+                                    <h4 className="text-2xl font-black bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent italic">RESEARCH SYNTHESIS ENGINE</h4>
+                                </div>
+
+                                {loadingPhase && (
+                                    <div className="text-center text-[#38bdf8] font-bold uppercase tracking-widest text-sm translate-y-4">
+                                        {loadingPhase.replace(/_/g, ' ')}...
+                                    </div>
+                                )}
+                            </div>
+                        ) : workflowStep === 'selecting_references' ? (
+                            <div className="max-w-3xl mx-auto flex flex-col min-h-full space-y-8 animate-in fade-in duration-700">
+                                <div className="text-center space-y-2 mb-4">
+                                    <h4 className="text-2xl font-black bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent">SELECT REFERENCES</h4>
+                                    <p className="text-gray-400">Select the references to ground your research components upon.</p>
+                                </div>
+                                <div className="space-y-3">
+                                    {referencesList.map((ref, idx) => (
+                                        <div key={idx} onClick={() => {
+                                            const newSet = new Set(selectedRefIndices);
+                                            if (newSet.has(idx)) newSet.delete(idx);
+                                            else newSet.add(idx);
+                                            setSelectedRefIndices(newSet);
+                                        }} className={`p-5 rounded-2xl border cursor-pointer transition-all duration-300 flex items-start gap-4 ${
+                                            selectedRefIndices.has(idx) 
+                                            ? (isDark ? 'bg-[#38bdf8]/10 border-[#38bdf8]/50 shadow-[0_0_15px_rgba(56,189,248,0.2)]' : 'bg-blue-50 border-blue-400/50 shadow-[0_0_15px_rgba(56,189,248,0.1)]') 
+                                            : (isDark ? 'bg-white/5 border-white/10 hover:border-white/20' : 'bg-white border-black/5 shadow-sm hover:border-[#38bdf8]')
+                                        }`}>
+
+                                            <div className={`mt-1 flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center border transition-all duration-300 ${selectedRefIndices.has(idx) ? 'bg-[#38bdf8] border-[#38bdf8] text-black shadow-[0_0_10px_rgba(56,189,248,0.4)]' : (isDark ? 'border-white/20' : 'border-black/10')}`}>
+                                                {selectedRefIndices.has(idx) && <CheckCircle2 size={14} />}
+                                            </div>
+                                            <p className={`text-sm font-serif italic leading-relaxed transition-colors duration-300 ${isDark ? (selectedRefIndices.has(idx) ? 'text-white' : 'text-gray-400') : (selectedRefIndices.has(idx) ? 'text-blue-900' : 'text-gray-700')}`}>{ref}</p>
+
+                                        </div>
+                                    ))}
+                                </div>
+                                <button onClick={handleExtractProposedSolution} disabled={selectedRefIndices.size === 0} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-8 transition-all duration-300 ${activeBtnClass} disabled:opacity-50 disabled:cursor-not-allowed`}>
+                                    Next Stage: Extract Proposed Solution <ChevronDown className="-rotate-90" size={18} />
+                                </button>
+
+                            </div>
+                        ) : workflowStep === 'reviewing_proposed_solution' ? (
+                            <div className="max-w-4xl mx-auto flex flex-col min-h-full space-y-8 animate-in fade-in duration-700">
+                                <div className="text-center space-y-2 mb-4">
+                                    <h4 className="text-2xl font-black bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent">PROPOSED SOLUTION</h4>
+
+                                    <p className="text-gray-400">Review the methodology extracted for your paper.</p>
+                                </div>
+                                <div className="grid gap-6">
+                                    {extractedProposedSolution && (
+                                        <div className={`border rounded-2xl p-7 shadow-xl transition-all duration-300 ${
+                                            isDark ? 'bg-white/5 border-[#38bdf8]/30 shadow-[#38bdf8]/5' : 'bg-white border-blue-100 shadow-blue-500/10'
+                                        }`}>
+                                            <div className="text-[10px] font-black text-[#38bdf8] uppercase tracking-[0.2em] mb-4">Proposed Solution</div>
+                                            <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{extractedProposedSolution}</p>
+                                        </div>
+                                    )}
+
+
+                                </div>
+                                <button onClick={handleExtractRelatedWorkAndAbstract} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-8 transition-all duration-300 ${activeBtnClass}`}>
+                                    Next Stage: Extract Related Work & Abstract <ChevronDown className="-rotate-90" size={18} />
+                                </button>
+
+                            </div>
+                        ) : workflowStep === 'reviewing_related_work_abstract' ? (
+                            <div className="max-w-4xl mx-auto flex flex-col min-h-full space-y-8 animate-in fade-in duration-700">
+                                <div className="text-center space-y-2 mb-4">
+                                    <h4 className="text-2xl font-black bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent">RELATED WORK & ABSTRACT</h4>
+                                    <p className="text-gray-400">Review the context and summary generated for your paper.</p>
+                                </div>
+
+
+                                <div className="grid gap-6">
+                                    {extractedRelatedWork && (
+                                        <div className={`border rounded-2xl p-7 shadow-xl transition-all duration-300 ${
+                                            isDark ? 'bg-white/5 border-[#38bdf8]/30 shadow-[#38bdf8]/5' : 'bg-white border-blue-100 shadow-blue-500/10'
+                                        }`}>
+                                            <div className="text-[10px] font-black text-[#38bdf8] uppercase tracking-[0.2em] mb-4">Related Work</div>
+                                            <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{extractedRelatedWork}</p>
+                                        </div>
+                                    )}
+                                    {extractedAbstract && (
+                                        <div className={`border rounded-2xl p-7 shadow-xl transition-all duration-300 ${
+                                            isDark ? 'bg-white/5 border-[#38bdf8]/30 shadow-[#38bdf8]/5' : 'bg-white border-blue-100 shadow-blue-500/10'
+                                        }`}>
+                                            <div className="text-[10px] font-black text-[#38bdf8] uppercase tracking-[0.2em] mb-4">Abstract</div>
+                                            <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{extractedAbstract}</p>
+                                        </div>
+                                    )}
+
+
+                                </div>
+
+                                <button onClick={handleFinalDraft} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-8 transition-all duration-300 ${activeBtnClass}`}>
+                                    <Sparkles size={18} /> Draft Final Paper
+                                </button>
+
+                            </div>
+                        ) : (workflowStep === 'done' || workflowStep === 'drafting') && generatedDraft ? (
+                            <div className="max-w-[8.5in] mx-auto animate-in fade-in duration-1000">
                                 {renderPaper()}
+                            </div>
+                        ) : (
+                            <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-full text-center space-y-6">
+                                <FileText size={48} className="text-gray-500 opacity-20" />
+                                <div>
+                                    <h4 className="text-xl font-bold mb-2">No Active Manuscript</h4>
+                                    <p className="text-gray-500">Enter a topic and synthesize your next publication.</p>
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
             </main>
 
-            {/* Modals */}
-            {showCompare && <CompareModal onClose={() => setShowCompare(false)} topic={topic} isDark={isDark} onInsert={(content) => {
-                setGeneratedDraft(prev => {
-                    const lines = prev.split('\n');
-                    const relatedWorkIdx = lines.findIndex(l => /related work/i.test(l));
-                    if (relatedWorkIdx !== -1) {
-                        const newLines = [...lines];
-                        newLines.splice(relatedWorkIdx + 1, 0, '\n' + content);
-                        return newLines.join('\n');
-                    }
-                    return prev + '\n\n## RELATED WORK\n' + content;
-                });
-                setShowCompare(false);
-            }} />}
+            {showCompare && <CompareModal onClose={() => setShowCompare(false)} topic={topic} isDark={isDark} />}
             {showCitations && <CitationModal onClose={() => setShowCitations(false)} references={refs} isDark={isDark} onFixRefs={(fixes) => {
-                setGeneratedDraft(prev => {
-                    let newText = prev;
-                    fixes.forEach(f => {
-                        newText = newText.replace(f.old, f.new);
-                    });
-                    return newText;
-                });
+                let newDraft = generatedDraft;
+                fixes.forEach(f => newDraft = newDraft.replace(f.old, f.new));
+                setGeneratedDraft(newDraft);
                 setShowCitations(false);
             }} />}
         </div>
     );
 };
-
-const SidebarItem = ({ icon, text, active, onClick, isDark }) => (
-    <div onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 group ${active
-        ? isDark
-            ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
-            : 'bg-[#e0f2fe] text-[#0284c7] border border-[#38bdf8]'
-        : isDark
-            ? 'text-gray-500 hover:text-white hover:bg-white/5 border border-transparent'
-            : 'bg-transparent text-gray-600 border border-transparent hover:bg-white hover:border-[#38bdf8] hover:text-black hover:shadow-[0_0_20px_rgba(56,189,248,0.5)]'
-        }`}>
-        <div className={`transition-transform ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
-        <span className="font-medium text-sm tracking-wide">{text}</span>
-    </div>
-);
-
 
 export default PaperDrafter;
