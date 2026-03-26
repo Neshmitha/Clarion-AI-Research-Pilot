@@ -4,6 +4,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import html2pdf from 'html2pdf.js';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import * as GraphvizWasm from "@hpcc-js/wasm-graphviz";
+
+
+
 
 import {
     FileText, Sparkles, Loader2,
@@ -16,7 +20,52 @@ import {
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 
+// ─── Graphviz Component ────────────────────────────────────────────────────────
+const GraphvizComp = ({ dot, isDark, isPaperView = false }) => {
+    const [svg, setSvg] = useState("");
+    useEffect(() => {
+        GraphvizWasm.Graphviz.load().then(gv => {
+            try {
+                const s = gv.layout(dot, "svg", "dot");
+                setSvg(s);
+            } catch (err) {
+                console.error("Graphviz layout failed", err);
+            }
+        });
+    }, [dot]);
+
+    if (!svg) return <div className="h-48 flex items-center justify-center p-8"><Loader2 className="animate-spin text-[#38bdf8]" size={32} /></div>;
+
+    if (isPaperView) {
+        return (
+            <div className="my-6 w-full flex flex-col items-center">
+                <div 
+                    className="w-full max-w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[600px] flex justify-center" 
+                    dangerouslySetInnerHTML={{ __html: svg }} 
+                />
+                <div className="mt-4 text-[9pt] font-bold text-center italic">Figure: System Architecture and Flow Analysis</div>
+            </div>
+        );
+    }
+
+    return (
+        <div 
+            className={`my-8 p-6 rounded-3xl border flex flex-col items-center overflow-auto shadow-xl transition-all duration-300 ${
+                isDark ? 'bg-white/5 border-white/10 shadow-[0_0_20px_rgba(56,189,248,0.1)]' : 'bg-gray-50 border-black/5'
+            }`}
+        >
+            <div className={`mb-4 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-[#38bdf8]' : 'text-blue-600'}`}>System Architecture / Flow</div>
+            <div 
+                className={`w-full max-w-full [&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[500px] ${isDark ? '[&>svg]:invert [&>svg]:brightness-150' : ''}`} 
+                dangerouslySetInnerHTML={{ __html: svg }} 
+            />
+        </div>
+    );
+};
+
+
 // ─── Templates ────────────────────────────────────────────────────────────────
+
 const TEMPLATES = ["ieee", "springer", "apa style", "acm", "elsevier"];
 const TYPES = ["conference", "journal"];
 
@@ -128,6 +177,9 @@ const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, 
     const renderLines = () => {
         const result = [];
         let tableBuffer = [];
+        let codeBuffer = [];
+        let inCodeBlock = false;
+        let codeLang = '';
 
         const flushTable = (key) => {
             if (tableBuffer.length > 0) {
@@ -158,8 +210,40 @@ const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, 
             }
         };
 
+        const flushCode = (key) => {
+            if (codeBuffer.length > 0) {
+                const code = codeBuffer.join('\n');
+                if (codeLang === 'graphviz') {
+                    result.push(<GraphvizComp key={`gv-${key}`} dot={code} isDark={isDark} isPaperView={true} />);
+                } else {
+
+
+                    result.push(<pre key={`code-${key}`} style={{ background: '#f8f9fa', padding: '10pt', borderRadius: '8pt', fontSize: '8pt', overflowX: 'auto', marginBottom: '8pt' }}><code>{code}</code></pre>);
+                }
+                codeBuffer = [];
+                inCodeBlock = false;
+                codeLang = '';
+            }
+        };
+
         sectionBuffer.forEach((line, idx) => {
             const t = line.trim();
+            
+            if (t.startsWith('```')) {
+                if (inCodeBlock) {
+                    flushCode(idx);
+                } else {
+                    inCodeBlock = true;
+                    codeLang = t.slice(3).toLowerCase();
+                }
+                return;
+            }
+
+            if (inCodeBlock) {
+                codeBuffer.push(line);
+                return;
+            }
+
             if (t.startsWith('|') && t.endsWith('|')) {
                 tableBuffer.push(line);
             } else {
@@ -183,8 +267,10 @@ const SectionWrapper = ({ text, sectionHeader, sectionBuffer, onImprove, style, 
             }
         });
         flushTable(sectionBuffer.length);
+        flushCode(sectionBuffer.length);
         return result;
     };
+
 
     return (
         <div style={{ position: 'relative' }} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
@@ -575,8 +661,11 @@ const PaperDrafter = () => {
     const [extractedProposedSolution, setExtractedProposedSolution] = useState('');
     const [extractedRelatedWork, setExtractedRelatedWork] = useState('');
     const [extractedAbstract, setExtractedAbstract] = useState('');
-
+    const [researchGaps, setResearchGaps] = useState([]);
+    const [keywords, setKeywords] = useState('');
     const user = JSON.parse(localStorage.getItem('user')) || { username: 'Researcher', id: '123' };
+
+
     const theme = localStorage.getItem('theme') || 'dark';
     const isDark = theme === 'dark';
     const isIEEE = template === 'ieee';
@@ -640,6 +729,26 @@ const PaperDrafter = () => {
         finally { setLoading(false); setLoadingPhase(''); }
     };
 
+    const handleExtractAbstract = async () => {
+        if (!keywords.trim()) return;
+        setLoading(true);
+        setLoadingPhase('generating_abstract');
+        const selectedCitations = referencesList.filter((_, i) => selectedRefIndices.has(i)).join('\n');
+        
+        try {
+            const absRes = await fetch(`${API_BASE_URL}/draft/extract-abstract`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic, citation: selectedCitations, keywords })
+            });
+            if (absRes.ok) {
+                const absData = await absRes.json();
+                setExtractedAbstract(absData.content);
+            }
+        } catch (err) { alert('Abstract generation failed: ' + err.message); }
+        finally { setLoading(false); setLoadingPhase(''); }
+    };
+
+
     const handleExtractProposedSolution = async () => {
         setLoading(true);
         setWorkflowStep('reviewing_proposed_solution');
@@ -665,47 +774,26 @@ const PaperDrafter = () => {
         finally { setLoading(false); setLoadingPhase(''); }
     };
 
-    const handleExtractRelatedWorkAndAbstract = async () => {
+    const handleExtractRelatedWorkAndResearchGap = async () => {
         setLoading(true);
-        setWorkflowStep('reviewing_related_work_abstract');
-
+        setWorkflowStep('reviewing_related_work_and_gap');
         const selectedCitations = referencesList.filter((_, i) => selectedRefIndices.has(i)).join('\n');
 
         try {
-            // STEP 3: Related Work Extraction
-            setLoadingPhase('getting_related_work');
-            let rwText = "";
-            try {
-                const rwRes = await fetch(`${API_BASE_URL}/draft/extract-related-work`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic, citation: selectedCitations })
-                });
-                if (rwRes.ok) {
-                    const rwData = await rwRes.json();
-                    rwText = rwData.content;
-                    setExtractedRelatedWork(rwText);
-                }
-            } catch (err) { console.error("RW extraction failed", err); }
-            await new Promise(r => setTimeout(r, 1000));
-
-            // STEP 4: Abstract Extraction
-            setLoadingPhase('getting_abstract');
-            let absText = "";
-            try {
-                const absRes = await fetch(`${API_BASE_URL}/draft/extract-abstract`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic, citation: selectedCitations })
-                });
-                if (absRes.ok) {
-                    const absData = await absRes.json();
-                    absText = absData.content;
-                    setExtractedAbstract(absText);
-                }
-            } catch (err) { console.error("Abstract extraction failed", err); }
-
+            setLoadingPhase('getting_related_work_and_gaps');
+            const rwRes = await fetch(`${API_BASE_URL}/draft/extract-related-work`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic, citation: selectedCitations })
+            });
+            if (rwRes.ok) {
+                const rwData = await rwRes.json();
+                setExtractedRelatedWork(rwData.content);
+                setResearchGaps(rwData.gaps || []);
+            }
         } catch (err) { alert('Extraction error: ' + err.message); }
         finally { setLoading(false); setLoadingPhase(''); }
     };
+
 
     const handleFinalDraft = async () => {
         setLoading(true);
@@ -715,7 +803,9 @@ const PaperDrafter = () => {
         const selectedCitations = referencesList.filter((_, i) => selectedRefIndices.has(i)).join('\n');
 
         try {
-            const finalInstructions = `${instructions}\n\nPRIMARY REFERENCES:\n${selectedCitations}\n\nUSE THIS PROPOSED SOLUTION AS BASE:\n${extractedProposedSolution}\n\nUSE THIS EXTRACTED RELATED WORK AS BASE:\n${extractedRelatedWork}\n\nUSE THIS EXTRACTED ABSTRACT AS BASE:\n${extractedAbstract}`;
+            const gapList = researchGaps.length > 0 ? `\n\nRESEARCH GAPS:\n- ${researchGaps.join('\n- ')}` : "";
+            const finalInstructions = `${instructions}\n\nPRIMARY REFERENCES:\n${selectedCitations}\n\nUSE THIS PROPOSED SOLUTION AS BASE:\n${extractedProposedSolution}\n\nUSE THIS EXTRACTED RELATED WORK AS BASE:\n${extractedRelatedWork}${gapList}\n\nUSE THIS EXTRACTED ABSTRACT AS BASE:\n${extractedAbstract}`;
+
 
             const response = await fetch(`${API_BASE_URL}/draft/generate`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -924,20 +1014,54 @@ const PaperDrafter = () => {
                                                 {selectedRefIndices.has(idx) && <CheckCircle2 size={14} />}
                                             </div>
                                             <p className={`text-sm font-serif italic leading-relaxed transition-colors duration-300 ${isDark ? (selectedRefIndices.has(idx) ? 'text-white' : 'text-gray-400') : (selectedRefIndices.has(idx) ? 'text-blue-900' : 'text-gray-700')}`}>{ref}</p>
-
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={handleExtractProposedSolution} disabled={selectedRefIndices.size === 0} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-8 transition-all duration-300 ${activeBtnClass} disabled:opacity-50 disabled:cursor-not-allowed`}>
+                                <button onClick={() => setWorkflowStep('entering_keywords')} disabled={selectedRefIndices.size === 0} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-8 transition-all duration-300 ${activeBtnClass} disabled:opacity-50 disabled:cursor-not-allowed`}>
+                                    Next Stage: Enter Keywords <ChevronDown className="-rotate-90" size={18} />
+                                </button>
+                            </div>
+                        ) : workflowStep === 'entering_keywords' ? (
+                            <div className="max-w-3xl mx-auto flex flex-col min-h-full space-y-8 animate-in fade-in duration-700">
+                                <div className="text-center space-y-2 mb-4">
+                                    <h4 className="text-2xl font-black bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent">ENTER KEYWORDS</h4>
+                                    <p className="text-gray-400">Provide 3-5 technical keywords for your manuscript.</p>
+                                </div>
+                                <div className="space-y-4">
+                                    <textarea 
+                                        value={keywords} onChange={e => setKeywords(e.target.value)} 
+                                        placeholder="e.g. Machine Learning, Healthcare, Deep Learning..." 
+                                        className={`w-full p-6 rounded-2xl border outline-none transition-all duration-300 resize-none min-h-[120px] ${
+                                            isDark 
+                                            ? 'bg-black/50 border-white/10 text-white focus:border-white/20 shadow-[0_0_15px_rgba(56,189,248,0.2)]' 
+                                            : 'bg-white border-black/5 text-black focus:border-[#38bdf8]/20 shadow-[0_0_12px_rgba(56,189,248,0.15)]'
+                                        }`} 
+                                    />
+                                    {!extractedAbstract && (
+                                        <button onClick={handleExtractAbstract} disabled={!keywords.trim() || loading} className={`w-full py-3 rounded-2xl font-bold transition-all duration-300 ${activeBtnClass} disabled:opacity-40`}>
+                                            {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : '✨ Generate Abstract'}
+                                        </button>
+                                    )}
+
+                                    {extractedAbstract && (
+                                        <div className={`mt-6 border rounded-2xl p-7 shadow-xl animate-in slide-in-from-top duration-500 ${
+                                            isDark ? 'bg-white/5 border-[#38bdf8]/30 shadow-[#38bdf8]/5' : 'bg-white border-blue-100 shadow-blue-500/10'
+                                        }`}>
+                                            <div className="text-[10px] font-black text-[#38bdf8] uppercase tracking-[0.2em] mb-4">Generated Abstract</div>
+                                            <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{extractedAbstract}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button onClick={handleExtractProposedSolution} disabled={!extractedAbstract || !keywords.trim()} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-4 transition-all duration-300 ${activeBtnClass} disabled:opacity-40`}>
                                     Next Stage: Extract Proposed Solution <ChevronDown className="-rotate-90" size={18} />
                                 </button>
-
                             </div>
+
                         ) : workflowStep === 'reviewing_proposed_solution' ? (
                             <div className="max-w-4xl mx-auto flex flex-col min-h-full space-y-8 animate-in fade-in duration-700">
                                 <div className="text-center space-y-2 mb-4">
                                     <h4 className="text-2xl font-black bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent">PROPOSED SOLUTION</h4>
-
                                     <p className="text-gray-400">Review the methodology extracted for your paper.</p>
                                 </div>
                                 <div className="grid gap-6">
@@ -949,21 +1073,18 @@ const PaperDrafter = () => {
                                             <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{extractedProposedSolution}</p>
                                         </div>
                                     )}
-
-
                                 </div>
-                                <button onClick={handleExtractRelatedWorkAndAbstract} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-8 transition-all duration-300 ${activeBtnClass}`}>
-                                    Next Stage: Extract Related Work & Abstract <ChevronDown className="-rotate-90" size={18} />
+                                <button onClick={handleExtractRelatedWorkAndResearchGap} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-8 transition-all duration-300 ${activeBtnClass}`}>
+                                    Next Stage: Extract Related Work & Research Gaps <ChevronDown className="-rotate-90" size={18} />
                                 </button>
 
                             </div>
-                        ) : workflowStep === 'reviewing_related_work_abstract' ? (
+                        ) : workflowStep === 'reviewing_related_work_and_gap' ? (
                             <div className="max-w-4xl mx-auto flex flex-col min-h-full space-y-8 animate-in fade-in duration-700">
                                 <div className="text-center space-y-2 mb-4">
-                                    <h4 className="text-2xl font-black bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent">RELATED WORK & ABSTRACT</h4>
-                                    <p className="text-gray-400">Review the context and summary generated for your paper.</p>
+                                    <h4 className="text-2xl font-black bg-gradient-to-r from-[#38bdf8] to-blue-400 bg-clip-text text-transparent">RELATED WORK & RESEARCH GAPS</h4>
+                                    <p className="text-gray-400">Review the context and identified research opportunities.</p>
                                 </div>
-
 
                                 <div className="grid gap-6">
                                     {extractedRelatedWork && (
@@ -974,22 +1095,26 @@ const PaperDrafter = () => {
                                             <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{extractedRelatedWork}</p>
                                         </div>
                                     )}
-                                    {extractedAbstract && (
+                                    {researchGaps && researchGaps.length > 0 && (
                                         <div className={`border rounded-2xl p-7 shadow-xl transition-all duration-300 ${
-                                            isDark ? 'bg-white/5 border-[#38bdf8]/30 shadow-[#38bdf8]/5' : 'bg-white border-blue-100 shadow-blue-500/10'
+                                            isDark ? 'bg-white/5 border-emerald-500/30 shadow-emerald-500/5' : 'bg-white border-emerald-100 shadow-emerald-500/10'
                                         }`}>
-                                            <div className="text-[10px] font-black text-[#38bdf8] uppercase tracking-[0.2em] mb-4">Abstract</div>
-                                            <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>{extractedAbstract}</p>
+                                            <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-4">Research Gap</div>
+                                            <ul className="space-y-3">
+                                                {researchGaps.map((gap, i) => (
+                                                    <li key={i} className={`text-sm leading-relaxed flex items-start gap-3 ${isDark ? 'text-gray-300' : 'text-gray-800'}`}>
+                                                        <span className="mt-1 w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                                                        {gap}
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </div>
                                     )}
-
-
                                 </div>
 
                                 <button onClick={handleFinalDraft} className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mt-8 transition-all duration-300 ${activeBtnClass}`}>
                                     <Sparkles size={18} /> Draft Final Paper
                                 </button>
-
                             </div>
                         ) : (workflowStep === 'done' || workflowStep === 'drafting') && generatedDraft ? (
                             <div className="max-w-[8.5in] mx-auto animate-in fade-in duration-1000">

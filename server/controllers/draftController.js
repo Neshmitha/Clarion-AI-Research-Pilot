@@ -133,8 +133,12 @@ exports.generateDraft = async (req, res) => {
             - We evaluate [evaluation strategy with specific metrics]
         - **STRICTLY EXCLUSIVE**: Use ONLY numerical citation markers (e.g., [1], [2]). NEVER use alphabetic markers like [A], [B] or [Author, Year].
         - **REFERENCES SECTION**: Under the References heading at the very end of the paper, you MUST list EXACTLY the references provided in the "PRIMARY REFERENCES" section from the Additional Instructions. Do not add any hallucinated or extra references. Only output the provided primary references.
+        - **RESEARCH GAPS**: Under the "Related Work" section, you MUST explicitly include the "RESEARCH GAPS" provided in the instructions as distinct bullet points to highlight the limitations being addressed.
+        - **GRAPHICAL ANALYSIS**: Add a section "## VII. GRAPHICAL ANALYSIS" before the References. In this section, provide a single, valid Graphviz DOT code block wrapped in \`\`\`graphviz... \`\`\` that represents the high-level system architecture, data flow, or research methodology related to the topic. Ensure the DOT code is syntactically correct and clear.
         - Ensure NO empty blocks or purely placeholder sections. 
         - Provide high-quality technical content with realistic methodology and quantitative results.`;
+
+
 
         try {
             res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -237,7 +241,37 @@ exports.extractReferencesList = async (req, res) => {
 exports.extractRelatedWork = async (req, res) => {
     try {
         const { topic, citation } = req.body;
-        const prompt = `Based on this research topic: "${topic}" and these primary references:\n${citation}\n\nGenerate a technically detailed "Related Work" summary (approx 150-200 words). Focus on how these works lead to a methodology. Return clean text only, no headings.`;
+        const prompt = `Based on this research topic: "${topic}" and these primary references:\n${citation}\n\nGenerate two sections:
+1. A technically detailed "Related Work" summary (approx 150-200 words). Focus on how these works lead to a methodology.
+2. A "Research Gap" section containing exactly 3 distinct technical bullet points identifying limitations in the current state-of-the-art.
+
+Return your response as a JSON object: { "relatedWork": "...", "researchGaps": ["gap 1", "gap 2", "gap 3"] }`;
+        
+        const result = await runAIWithPool(prompt);
+        try {
+            const jsonMatch = (typeof result === 'string') ? result.match(/\{[\s\S]*\}/) : null;
+            const data = jsonMatch ? JSON.parse(jsonMatch[0]) : (typeof result === 'string' ? JSON.parse(result) : result);
+            res.json({ content: data.relatedWork, gaps: data.researchGaps || [] });
+        } catch (err) {
+            // Fallback for non-JSON responses
+            res.json({ content: result, gaps: ["Gap analysis unavailable", "Limited depth in current references", "Incomplete methodological coverage"] });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+
+exports.extractAbstract = async (req, res) => {
+    try {
+        const { topic, citation, keywords } = req.body;
+        const prompt = `Based on this research topic: "${topic}", keywords: "${keywords || 'N/A'}", and these primary references:\n${citation}\n\nWrite a formal academic abstract (approx 150-200 words) with the following STRICT structure:
+1. The first 2 lines MUST contain real-time statistics related to "${topic}".
+2. The next 2 lines MUST contain traditional problems in this field.
+3. Then write EXACTLY the phrase "To overcome these problems" followed by specific problem points.
+4. Finally, write EXACTLY the phrase "What this work proposes" followed by the proposed methodology.
+
+Return clean text only, no headings. Ensure technical accuracy and a scholarly tone.`;
         
         const result = await runAIWithPool(prompt);
         res.json({ content: result });
@@ -246,17 +280,6 @@ exports.extractRelatedWork = async (req, res) => {
     }
 };
 
-exports.extractAbstract = async (req, res) => {
-    try {
-        const { topic, citation } = req.body;
-        const prompt = `Based on this research topic: "${topic}" and these primary references:\n${citation}\n\nWrite a formal academic abstract (approx 100-150 words). It should summarize the motivation, proposed approach, and expected impact. Return clean text only, no headings.`;
-        
-        const result = await runAIWithPool(prompt);
-        res.json({ content: result });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
 
 exports.extractProposedSolution = async (req, res) => {
     try {
